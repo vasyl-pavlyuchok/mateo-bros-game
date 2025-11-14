@@ -1,0 +1,95 @@
+PROJECT: SIMPLE MARIO-LIKE PLATFORMER IN THE BROWSER
+
+GOAL
+- Build a very simple 2D platformer that *feels* a bit like Super Mario Bros.
+- It runs in the browser using ONLY:
+  - HTML + CSS
+  - JavaScript
+  - HTML5 <canvas>
+- The main purpose is for me to learn how to code while building a real game.
+- Priority: keep everything very simple and understandable for a beginner.
+
+MY LEVEL
+- I do NOT know how to code yet.
+- I’m okay with reading code if it’s explained clearly with comments.
+- I want small, incremental changes, not huge rewrites.
+- I prefer vanilla JavaScript, no bundlers, frameworks or libraries.
+
+TECH SETUP
+- Project folder has:
+  - index.html
+  - main.js
+- index.html:
+  - Contains a <canvas id="game" width="800" height="400"></canvas>
+  - Loads main.js with <script src="main.js"></script>
+  - Basic styles (border around the canvas and a background color)
+- main.js:
+  - Gets the canvas and 2D context:
+    - const canvas = document.getElementById("game");
+    - const ctx = canvas.getContext("2d");
+  - Tracks keyboard input with keydown/keyup listeners (ArrowLeft, ArrowRight, ArrowUp and/or Space).
+  - Has a player object something like:
+    - x, y, width, height
+    - vx, vy (velocity)
+    - speed
+    - jumpStrength
+    - onGround (boolean)
+  - Has gravity (e.g. gravity = 0.5) and a groundY line (e.g. 350).
+  - update() does:
+    - horizontal movement left/right using keys and player.speed
+    - jump when key is pressed AND player.onGround is true
+    - apply gravity (vy += gravity) and then apply velocity to x and y
+    - simple ground collision so player stops at groundY and onGround becomes true
+  - draw() does:
+    - clear the canvas
+    - draw the ground as a simple rectangle
+    - draw the player as a simple red rectangle
+  - loop():
+    - calls update() and draw()
+    - uses requestAnimationFrame(loop)
+  - loop() is called once at the bottom to start the game.
+
+CURRENT STATE
+- The basic game loop is working.
+- The player:
+  - appears on screen,
+  - can move left/right with the arrow keys,
+  - can jump and land on the ground.
+- If some of this is missing in my actual code, FIRST help me refactor main.js so it matches this design in a clean and simple way, THEN build new features.
+
+DESIGN PRINCIPLES FOR HELPING ME
+- Always keep the code simple and beginner-friendly.
+- Add comments in plain language for any new logic.
+- Make small, focused changes instead of rewrites.
+- Before changing large parts of the file, explain what you’ll change and why.
+- After writing code, add a short explanation of what you did, in simple words.
+
+FEATURE ROADMAP (NEXT STEPS)
+LEVEL 1 (DONE or NEARLY DONE)
+- Basic movement and jump
+- Gravity + ground collision
+- Simple game loop with update() and draw()
+
+LEVEL 2 (NOW)
+- Keep player inside the canvas horizontally
+- Add at least one floating platform (a rectangle) that the player can land on
+- Simple collision with that platform (only from above is fine)
+
+LEVEL 3 (LATER)
+- Camera that follows the player horizontally
+- Level made of multiple platforms defined in an array (like basic tiles)
+- Simple collectibles (coins) or enemies that move back and forth
+
+LEVEL 4 (MUCH LATER)
+- Replace rectangles with simple sprites
+- Add basic sounds
+- Start/restart screen, basic UI
+
+HOW I WANT YOU (CURSOR) TO RESPOND
+- When I select a part of the code and ask for a change, modify ONLY what’s needed.
+- When you add or change code, explain:
+  - what you changed,
+  - why you changed it,
+  - where I should look to understand it.
+- Prefer code that is explicit and easy to read over "clever" code.
+- Never introduce extra tools (no npm, no bundlers, no frameworks) unless I explicitly ask.
