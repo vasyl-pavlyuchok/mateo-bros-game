@@ -240,21 +240,15 @@ const characters = {
 
 const POWER_UP_GROWTH = "growth";
 
-// Current active character (Level 1 = Mateo)
-let currentCharacter = "mateo";
-
-// ------ LEVEL MANAGEMENT ------
-const levelOrder = ["mateo", "nick", "vas"];
-const totalLevels = levelOrder.length;
-let currentLevel = 0; // 0 = Mateo, 1 = Nick, 2 = Vas
-
 const gravity = 0.5;
 const groundY = 350;
 
 // ------ TILEMAP SYSTEM ------
 const tileSize = 40;
+const levelRows = 10;
+const levelCols = 80;
 
-const levelConfigs = [
+const legacyLevelConfigs = [
   {
     theme: {
       skyColor: "#87ceeb",
@@ -527,7 +521,3189 @@ const levelConfigs = [
       { x: 1450, y: 90, scale: 1.1 },
     ],
   },
+  {
+    theme: {
+      skyColor: "#b9e8ff",
+      groundColor: "#3b2a20",
+      groundDark: "#2a1d14",
+      groundHighlight: "#6c4f34",
+    },
+    levelData: [
+      "                                        ",
+      "        XX           XX                 ",
+      "   XX        XXXX             XX        ",
+      "             XXXX                      ",
+      "     XXXX                    XXXX      ",
+      "                        XX             ",
+      "  XXXX       XX     XXXX         XX    ",
+      "        XXX                    XXXX    ",
+      "   XX               XX                 ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 420, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 760, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1180, y: 170, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 460, y: 210, width: 40, height: 40, broken: false },
+      { x: 500, y: 210, width: 40, height: 40, broken: false },
+      { x: 800, y: 190, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 160, y: 220, width: 20, height: 20, collected: false },
+      { x: 240, y: 260, width: 20, height: 20, collected: false },
+      { x: 520, y: 160, width: 20, height: 20, collected: false },
+      { x: 660, y: 200, width: 20, height: 20, collected: false },
+      { x: 880, y: 150, width: 20, height: 20, collected: false },
+      { x: 1040, y: 220, width: 20, height: 20, collected: false },
+      { x: 1240, y: 240, width: 20, height: 20, collected: false },
+      { x: 1480, y: 200, width: 20, height: 20, collected: false },
+      { x: 1360, y: 140, width: 20, height: 20, collected: false },
+      { x: 360, y: 140, width: 20, height: 20, collected: false },
+      { x: 940, y: 260, width: 20, height: 20, collected: false },
+      { x: 1680, y: 200, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 300, y: 190, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 900, y: 120, type: "helm", width: 24, height: 24, collected: false },
+      { x: 1450, y: 220, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 320,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 240,
+        rightBound: 520,
+        platformY: groundY,
+        phaseOffset: Math.PI / 3,
+      },
+      {
+        type: "crab",
+        x: 1080,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.3,
+        speed: 1.3,
+        leftBound: 980,
+        rightBound: 1320,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 600,
+        y: 160,
+        width: 36,
+        height: 18,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 520,
+        rightBound: 820,
+        baseY: 170,
+        amplitude: 32,
+        phaseOffset: 0,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1360,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.1,
+        speed: 1.1,
+        leftBound: 1240,
+        rightBound: 1560,
+        baseY: 160,
+        amplitude: 28,
+        phaseOffset: Math.PI / 2,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 760,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.0,
+        speed: 1.0,
+        leftBound: 700,
+        rightBound: 980,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1500,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.1,
+        speed: 1.1,
+        leftBound: 1420,
+        rightBound: 1720,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 3) / 4,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 250, width: 260, height: 100, baseColor: "#2c5f6b", shadowColor: "#1b3f47" },
+      { x: 920, width: 300, height: 120, baseColor: "#2c5f6b", shadowColor: "#1b3f47" },
+      { x: 1580, width: 280, height: 110, baseColor: "#2c5f6b", shadowColor: "#1b3f47" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 200, height: 90, baseColor: "#4ea198", shadowColor: "#2a6d68" },
+      { x: 760, width: 240, height: 110, baseColor: "#4ea198", shadowColor: "#2a6d68" },
+      { x: 1380, width: 220, height: 105, baseColor: "#4ea198", shadowColor: "#2a6d68" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.1 },
+      { x: 580, y: 60, scale: 1.4 },
+      { x: 1080, y: 80, scale: 1.0 },
+      { x: 1520, y: 65, scale: 1.2 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#7ed2ff",
+      groundColor: "#4c2f1f",
+      groundDark: "#2e1a12",
+      groundHighlight: "#8a5438",
+    },
+    levelData: [
+      "                                        ",
+      "  XX            XX                      ",
+      "              XXXX         XX          ",
+      "        XXXX                XXX        ",
+      "   XX                XX                ",
+      "            XXX                XX      ",
+      "     XXX                XXX            ",
+      "            XX      XXXX               ",
+      "  XX    XXXX        XX        XX       ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 380, y: 200, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 720, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1180, y: 160, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 420, y: 200, width: 40, height: 40, broken: false },
+      { x: 460, y: 200, width: 40, height: 40, broken: false },
+      { x: 980, y: 160, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 180, y: 240, width: 20, height: 20, collected: false },
+      { x: 260, y: 200, width: 20, height: 20, collected: false },
+      { x: 520, y: 150, width: 20, height: 20, collected: false },
+      { x: 640, y: 220, width: 20, height: 20, collected: false },
+      { x: 920, y: 140, width: 20, height: 20, collected: false },
+      { x: 1100, y: 220, width: 20, height: 20, collected: false },
+      { x: 1340, y: 200, width: 20, height: 20, collected: false },
+      { x: 1500, y: 240, width: 20, height: 20, collected: false },
+      { x: 1660, y: 200, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 780, y: 120, width: 20, height: 20, collected: false },
+      { x: 1240, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 280, y: 180, type: "helm", width: 24, height: 24, collected: false },
+      { x: 860, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 1420, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 260,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.3,
+        speed: 1.3,
+        leftBound: 200,
+        rightBound: 500,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "crab",
+        x: 1120,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.4,
+        speed: 1.4,
+        leftBound: 1000,
+        rightBound: 1360,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 560,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 480,
+        rightBound: 780,
+        baseY: 160,
+        amplitude: 30,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1380,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: -1.3,
+        speed: 1.3,
+        leftBound: 1260,
+        rightBound: 1600,
+        baseY: 170,
+        amplitude: 32,
+        phaseOffset: Math.PI / 1.5,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 720,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.05,
+        speed: 1.05,
+        leftBound: 680,
+        rightBound: 960,
+        platformY: groundY,
+        phaseOffset: Math.PI / 6,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1480,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1400,
+        rightBound: 1740,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 220, width: 280, height: 120, baseColor: "#1f4a5e", shadowColor: "#142d38" },
+      { x: 920, width: 320, height: 140, baseColor: "#1f4a5e", shadowColor: "#142d38" },
+      { x: 1580, width: 300, height: 130, baseColor: "#1f4a5e", shadowColor: "#142d38" },
+    ],
+    backgroundHillsNear: [
+      { x: 160, width: 230, height: 110, baseColor: "#3d7f8c", shadowColor: "#27535c" },
+      { x: 780, width: 260, height: 130, baseColor: "#3d7f8c", shadowColor: "#27535c" },
+      { x: 1380, width: 240, height: 125, baseColor: "#3d7f8c", shadowColor: "#27535c" },
+    ],
+    backgroundClouds: [
+      { x: 180, y: 80, scale: 1.0 },
+      { x: 520, y: 60, scale: 1.3 },
+      { x: 980, y: 90, scale: 0.9 },
+      { x: 1420, y: 75, scale: 1.2 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#1f3b56",
+      groundColor: "#2c1c1a",
+      groundDark: "#1b100f",
+      groundHighlight: "#573226",
+    },
+    levelData: [
+      "                                        ",
+      "       XX          XX                  ",
+      "   XXX       XXX           XX          ",
+      "                XX                 XX  ",
+      "      XXXX                XXXX        ",
+      "                XXXX                 ",
+      "  XXX        XX          XXX          ",
+      "        XX          XXX         XX    ",
+      "   XX         XX                XX    ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 360, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 680, y: 170, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1240, y: 190, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 1560, y: 150, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 400, y: 210, width: 40, height: 40, broken: false },
+      { x: 840, y: 190, width: 40, height: 40, broken: false },
+      { x: 880, y: 190, width: 40, height: 40, broken: false },
+      { x: 1280, y: 190, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 200, y: 240, width: 20, height: 20, collected: false },
+      { x: 280, y: 200, width: 20, height: 20, collected: false },
+      { x: 520, y: 160, width: 20, height: 20, collected: false },
+      { x: 720, y: 150, width: 20, height: 20, collected: false },
+      { x: 960, y: 210, width: 20, height: 20, collected: false },
+      { x: 1100, y: 180, width: 20, height: 20, collected: false },
+      { x: 1360, y: 230, width: 20, height: 20, collected: false },
+      { x: 1500, y: 210, width: 20, height: 20, collected: false },
+      { x: 1700, y: 240, width: 20, height: 20, collected: false },
+      { x: 1840, y: 200, width: 20, height: 20, collected: false },
+      { x: 420, y: 130, width: 20, height: 20, collected: false },
+      { x: 1340, y: 130, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 260, y: 190, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 960, y: 150, type: "helm", width: 24, height: 24, collected: false },
+      { x: 1580, y: 180, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 340,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.4,
+        speed: 1.4,
+        leftBound: 260,
+        rightBound: 560,
+        platformY: groundY,
+        phaseOffset: Math.PI / 6,
+      },
+      {
+        type: "crab",
+        x: 980,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.5,
+        speed: 1.5,
+        leftBound: 900,
+        rightBound: 1220,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 600,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 520,
+        rightBound: 820,
+        baseY: 150,
+        amplitude: 34,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1400,
+        y: 130,
+        width: 36,
+        height: 18,
+        vx: -1.4,
+        speed: 1.4,
+        leftBound: 1280,
+        rightBound: 1600,
+        baseY: 150,
+        amplitude: 30,
+        phaseOffset: (Math.PI * 2) / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 720,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 660,
+        rightBound: 900,
+        platformY: groundY,
+        phaseOffset: Math.PI / 5,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1460,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1380,
+        rightBound: 1700,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 220, width: 260, height: 110, baseColor: "#132f3c", shadowColor: "#091c23" },
+      { x: 940, width: 320, height: 130, baseColor: "#132f3c", shadowColor: "#091c23" },
+      { x: 1660, width: 300, height: 120, baseColor: "#132f3c", shadowColor: "#091c23" },
+    ],
+    backgroundHillsNear: [
+      { x: 200, width: 240, height: 110, baseColor: "#225264", shadowColor: "#12303b" },
+      { x: 860, width: 270, height: 130, baseColor: "#225264", shadowColor: "#12303b" },
+      { x: 1500, width: 250, height: 120, baseColor: "#225264", shadowColor: "#12303b" },
+    ],
+    backgroundClouds: [
+      { x: 260, y: 70, scale: 0.9 },
+      { x: 580, y: 55, scale: 1.2 },
+      { x: 1080, y: 65, scale: 1.0 },
+      { x: 1520, y: 60, scale: 0.95 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#9fc4f8",
+      groundColor: "#3a2b23",
+      groundDark: "#231813",
+      groundHighlight: "#6b4a36",
+    },
+    levelData: [
+      "                                        ",
+      "       XX          XXX                  ",
+      "    XXX       XX          XX           ",
+      "                     XX                ",
+      "   XXXX                           XX   ",
+      "                 XXXX                X ",
+      "      XX    XXXX        XX            ",
+      "  XXX               XXX        XXX    ",
+      "     XX         XX                  X ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 340, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 760, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1180, y: 170, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 380, y: 210, width: 40, height: 40, broken: false },
+      { x: 420, y: 210, width: 40, height: 40, broken: false },
+      { x: 980, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 160, y: 240, width: 20, height: 20, collected: false },
+      { x: 260, y: 200, width: 20, height: 20, collected: false },
+      { x: 520, y: 150, width: 20, height: 20, collected: false },
+      { x: 660, y: 200, width: 20, height: 20, collected: false },
+      { x: 820, y: 140, width: 20, height: 20, collected: false },
+      { x: 980, y: 120, width: 20, height: 20, collected: false },
+      { x: 1120, y: 210, width: 20, height: 20, collected: false },
+      { x: 1360, y: 200, width: 20, height: 20, collected: false },
+      { x: 1580, y: 220, width: 20, height: 20, collected: false },
+      { x: 1750, y: 180, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 880, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 260, y: 190, type: "helm", width: 24, height: 24, collected: false },
+      { x: 880, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 1480, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 280,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 200,
+        rightBound: 460,
+        platformY: groundY,
+        phaseOffset: Math.PI / 5,
+      },
+      {
+        type: "crab",
+        x: 1080,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.3,
+        speed: 1.3,
+        leftBound: 980,
+        rightBound: 1300,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 30,
+        phaseOffset: Math.PI / 2,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1320,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 170,
+        amplitude: 28,
+        phaseOffset: Math.PI / 1.5,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 720,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.0,
+        speed: 1.0,
+        leftBound: 660,
+        rightBound: 920,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1500,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.1,
+        speed: 1.1,
+        leftBound: 1420,
+        rightBound: 1700,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 3) / 4,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 240, width: 260, height: 110, baseColor: "#2f5a68", shadowColor: "#1d3640" },
+      { x: 940, width: 320, height: 130, baseColor: "#2f5a68", shadowColor: "#1d3640" },
+      { x: 1620, width: 300, height: 120, baseColor: "#2f5a68", shadowColor: "#1d3640" },
+    ],
+    backgroundHillsNear: [
+      { x: 200, width: 230, height: 100, baseColor: "#4aa7a0", shadowColor: "#2e6d68" },
+      { x: 780, width: 260, height: 120, baseColor: "#4aa7a0", shadowColor: "#2e6d68" },
+      { x: 1440, width: 240, height: 115, baseColor: "#4aa7a0", shadowColor: "#2e6d68" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.1 },
+      { x: 620, y: 60, scale: 1.3 },
+      { x: 1080, y: 80, scale: 1.0 },
+      { x: 1520, y: 65, scale: 1.2 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#f6c6a8",
+      groundColor: "#4a2b1f",
+      groundDark: "#2e1a13",
+      groundHighlight: "#8c5a3c",
+    },
+    levelData: [
+      "                                        ",
+      "    XX      XX               XX         ",
+      "         XXX        XX                   ",
+      "  XX                XXXX        XX      ",
+      "           XXXX                   XX    ",
+      "     XXXX                XX            ",
+      "        XX     XXXX              XX     ",
+      "                XX      XXXX           ",
+      "   XX      XXX         XX         XX   ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 360, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 760, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1140, y: 160, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 400, y: 210, width: 40, height: 40, broken: false },
+      { x: 440, y: 210, width: 40, height: 40, broken: false },
+      { x: 900, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 200, y: 240, width: 20, height: 20, collected: false },
+      { x: 300, y: 200, width: 20, height: 20, collected: false },
+      { x: 520, y: 160, width: 20, height: 20, collected: false },
+      { x: 660, y: 190, width: 20, height: 20, collected: false },
+      { x: 840, y: 150, width: 20, height: 20, collected: false },
+      { x: 1020, y: 220, width: 20, height: 20, collected: false },
+      { x: 1220, y: 200, width: 20, height: 20, collected: false },
+      { x: 1420, y: 220, width: 20, height: 20, collected: false },
+      { x: 1560, y: 180, width: 20, height: 20, collected: false },
+      { x: 1720, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 130, width: 20, height: 20, collected: false },
+      { x: 980, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 260, y: 190, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 840, y: 140, type: "helm", width: 24, height: 24, collected: false },
+      { x: 1460, y: 200, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 300,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.3,
+        speed: 1.3,
+        leftBound: 240,
+        rightBound: 520,
+        platformY: groundY,
+        phaseOffset: Math.PI / 6,
+      },
+      {
+        type: "crab",
+        x: 1080,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.4,
+        speed: 1.4,
+        leftBound: 1000,
+        rightBound: 1320,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 540,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 480,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 30,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1340,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 170,
+        amplitude: 28,
+        phaseOffset: Math.PI / 1.5,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.05,
+        speed: 1.05,
+        leftBound: 660,
+        rightBound: 940,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1500,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.15,
+        speed: 1.15,
+        leftBound: 1420,
+        rightBound: 1720,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 200, width: 260, height: 110, baseColor: "#3c5d64", shadowColor: "#263a3f" },
+      { x: 880, width: 320, height: 130, baseColor: "#3c5d64", shadowColor: "#263a3f" },
+      { x: 1560, width: 300, height: 120, baseColor: "#3c5d64", shadowColor: "#263a3f" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 230, height: 100, baseColor: "#76a6a4", shadowColor: "#4c6c6b" },
+      { x: 760, width: 260, height: 120, baseColor: "#76a6a4", shadowColor: "#4c6c6b" },
+      { x: 1420, width: 240, height: 115, baseColor: "#76a6a4", shadowColor: "#4c6c6b" },
+    ],
+    backgroundClouds: [
+      { x: 200, y: 70, scale: 1.1 },
+      { x: 560, y: 60, scale: 1.4 },
+      { x: 1020, y: 80, scale: 1.0 },
+      { x: 1480, y: 65, scale: 1.2 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#486eec",
+      groundColor: "#2f1e2f",
+      groundDark: "#1b111c",
+      groundHighlight: "#604670",
+    },
+    levelData: [
+      "                                        ",
+      "      XX      XXX                       ",
+      "   XXX                XX                ",
+      "             XX                 XX     ",
+      "  XX                XXXX               ",
+      "        XXXX                 XX        ",
+      "     XXX       XX      XXXX            ",
+      "             XX    XX                  ",
+      "  XX     XXX         XX      XX        ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 300, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 660, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1040, y: 160, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 340, y: 210, width: 40, height: 40, broken: false },
+      { x: 380, y: 210, width: 40, height: 40, broken: false },
+      { x: 900, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 180, y: 240, width: 20, height: 20, collected: false },
+      { x: 260, y: 200, width: 20, height: 20, collected: false },
+      { x: 480, y: 160, width: 20, height: 20, collected: false },
+      { x: 620, y: 190, width: 20, height: 20, collected: false },
+      { x: 780, y: 150, width: 20, height: 20, collected: false },
+      { x: 980, y: 220, width: 20, height: 20, collected: false },
+      { x: 1180, y: 200, width: 20, height: 20, collected: false },
+      { x: 1380, y: 220, width: 20, height: 20, collected: false },
+      { x: 1520, y: 180, width: 20, height: 20, collected: false },
+      { x: 1700, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 860, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
+      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 1460, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 260,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.4,
+        speed: 1.4,
+        leftBound: 200,
+        rightBound: 460,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "crab",
+        x: 980,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.5,
+        speed: 1.5,
+        leftBound: 900,
+        rightBound: 1220,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 540,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 32,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1280,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.3,
+        speed: 1.3,
+        leftBound: 1180,
+        rightBound: 1480,
+        baseY: 150,
+        amplitude: 30,
+        phaseOffset: (Math.PI * 2) / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.15,
+        speed: 1.15,
+        leftBound: 640,
+        rightBound: 900,
+        platformY: groundY,
+        phaseOffset: Math.PI / 5,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1460,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1380,
+        rightBound: 1700,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 3) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 180, width: 250, height: 110, baseColor: "#1a2756", shadowColor: "#0c1530" },
+      { x: 860, width: 320, height: 130, baseColor: "#1a2756", shadowColor: "#0c1530" },
+      { x: 1560, width: 300, height: 120, baseColor: "#1a2756", shadowColor: "#0c1530" },
+    ],
+    backgroundHillsNear: [
+      { x: 160, width: 230, height: 100, baseColor: "#3551a4", shadowColor: "#1f2f60" },
+      { x: 760, width: 260, height: 120, baseColor: "#3551a4", shadowColor: "#1f2f60" },
+      { x: 1440, width: 240, height: 115, baseColor: "#3551a4", shadowColor: "#1f2f60" },
+    ],
+    backgroundClouds: [
+      { x: 200, y: 80, scale: 1.0 },
+      { x: 560, y: 70, scale: 1.3 },
+      { x: 1020, y: 90, scale: 0.9 },
+      { x: 1480, y: 80, scale: 1.1 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#2f5a88",
+      groundColor: "#2b2620",
+      groundDark: "#161310",
+      groundHighlight: "#5a4a38",
+    },
+    levelData: [
+      "                                        ",
+      "    XX             XX                   ",
+      "             XXX             XX         ",
+      "  XX               XX            XX     ",
+      "        XXXX                      XX    ",
+      "                 XXXX       XX          ",
+      "   XXX      XX                    XX    ",
+      "         XX        XXX       XXXX       ",
+      " XX   XX        XX                     X",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 700, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1100, y: 160, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 360, y: 210, width: 40, height: 40, broken: false },
+      { x: 400, y: 210, width: 40, height: 40, broken: false },
+      { x: 920, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 180, y: 240, width: 20, height: 20, collected: false },
+      { x: 260, y: 200, width: 20, height: 20, collected: false },
+      { x: 520, y: 160, width: 20, height: 20, collected: false },
+      { x: 640, y: 180, width: 20, height: 20, collected: false },
+      { x: 820, y: 140, width: 20, height: 20, collected: false },
+      { x: 980, y: 120, width: 20, height: 20, collected: false },
+      { x: 1200, y: 210, width: 20, height: 20, collected: false },
+      { x: 1400, y: 200, width: 20, height: 20, collected: false },
+      { x: 1600, y: 220, width: 20, height: 20, collected: false },
+      { x: 1740, y: 180, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 920, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 260, y: 190, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 840, y: 140, type: "helm", width: 24, height: 24, collected: false },
+      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 300,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.35,
+        speed: 1.35,
+        leftBound: 220,
+        rightBound: 480,
+        platformY: groundY,
+        phaseOffset: Math.PI / 3,
+      },
+      {
+        type: "crab",
+        x: 1080,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.4,
+        speed: 1.4,
+        leftBound: 1000,
+        rightBound: 1320,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 150,
+        amplitude: 30,
+        phaseOffset: Math.PI / 2,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1380,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1280,
+        rightBound: 1520,
+        baseY: 160,
+        amplitude: 28,
+        phaseOffset: Math.PI / 1.4,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 660,
+        rightBound: 940,
+        platformY: groundY,
+        phaseOffset: Math.PI / 5,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1500,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.15,
+        speed: 1.15,
+        leftBound: 1420,
+        rightBound: 1720,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 200, width: 260, height: 110, baseColor: "#1f3a4a", shadowColor: "#0f2028" },
+      { x: 920, width: 320, height: 130, baseColor: "#1f3a4a", shadowColor: "#0f2028" },
+      { x: 1600, width: 300, height: 120, baseColor: "#1f3a4a", shadowColor: "#0f2028" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 230, height: 100, baseColor: "#396b72", shadowColor: "#234044" },
+      { x: 780, width: 260, height: 120, baseColor: "#396b72", shadowColor: "#234044" },
+      { x: 1460, width: 240, height: 115, baseColor: "#396b72", shadowColor: "#234044" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.0 },
+      { x: 560, y: 60, scale: 1.3 },
+      { x: 1020, y: 80, scale: 0.9 },
+      { x: 1520, y: 65, scale: 1.1 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#f7e8b0",
+      groundColor: "#573f2d",
+      groundDark: "#362519",
+      groundHighlight: "#8d694c",
+    },
+    levelData: [
+      "                                        ",
+      "        XX           XX                 ",
+      "   XX         XXXX           XX         ",
+      "             XXXX                 XX    ",
+      "   XXXX                XX              ",
+      "                   XXXX           XX   ",
+      "  XX     XX                XXXX        ",
+      "        XXX      XX                    ",
+      " XX            XXX       XX        XX  ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 720, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1200, y: 170, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 360, y: 210, width: 40, height: 40, broken: false },
+      { x: 400, y: 210, width: 40, height: 40, broken: false },
+      { x: 940, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 180, y: 240, width: 20, height: 20, collected: false },
+      { x: 260, y: 200, width: 20, height: 20, collected: false },
+      { x: 520, y: 160, width: 20, height: 20, collected: false },
+      { x: 640, y: 180, width: 20, height: 20, collected: false },
+      { x: 840, y: 150, width: 20, height: 20, collected: false },
+      { x: 1020, y: 220, width: 20, height: 20, collected: false },
+      { x: 1220, y: 200, width: 20, height: 20, collected: false },
+      { x: 1420, y: 220, width: 20, height: 20, collected: false },
+      { x: 1580, y: 180, width: 20, height: 20, collected: false },
+      { x: 1740, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 980, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
+      { x: 880, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 1460, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 280,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.3,
+        speed: 1.3,
+        leftBound: 200,
+        rightBound: 520,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "crab",
+        x: 1080,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.4,
+        speed: 1.4,
+        leftBound: 1000,
+        rightBound: 1320,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 30,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1320,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 170,
+        amplitude: 28,
+        phaseOffset: Math.PI / 1.5,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 660,
+        rightBound: 940,
+        platformY: groundY,
+        phaseOffset: Math.PI / 5,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1500,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.15,
+        speed: 1.15,
+        leftBound: 1420,
+        rightBound: 1720,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 3) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 200, width: 260, height: 110, baseColor: "#3a4b3e", shadowColor: "#1e261f" },
+      { x: 920, width: 320, height: 130, baseColor: "#3a4b3e", shadowColor: "#1e261f" },
+      { x: 1600, width: 300, height: 120, baseColor: "#3a4b3e", shadowColor: "#1e261f" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 230, height: 100, baseColor: "#6a8a5c", shadowColor: "#42553a" },
+      { x: 780, width: 260, height: 120, baseColor: "#6a8a5c", shadowColor: "#42553a" },
+      { x: 1460, width: 240, height: 115, baseColor: "#6a8a5c", shadowColor: "#42553a" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.1 },
+      { x: 560, y: 60, scale: 1.3 },
+      { x: 1020, y: 80, scale: 1.0 },
+      { x: 1520, y: 65, scale: 1.2 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#92e0ff",
+      groundColor: "#3c2e22",
+      groundDark: "#20170f",
+      groundHighlight: "#6d4f34",
+    },
+    levelData: [
+      "                                        ",
+      "   XX               XX                  ",
+      "         XXX                XX          ",
+      "  XX                   XX              ",
+      "        XXXX                      XX   ",
+      "              XXX            XX        ",
+      "   XX          XX      XX             ",
+      "       XXX                 XXX        ",
+      "  XX            XX              XX    ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 340, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 720, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1180, y: 160, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 380, y: 210, width: 40, height: 40, broken: false },
+      { x: 420, y: 210, width: 40, height: 40, broken: false },
+      { x: 940, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 180, y: 230, width: 20, height: 20, collected: false },
+      { x: 260, y: 200, width: 20, height: 20, collected: false },
+      { x: 520, y: 160, width: 20, height: 20, collected: false },
+      { x: 660, y: 190, width: 20, height: 20, collected: false },
+      { x: 820, y: 150, width: 20, height: 20, collected: false },
+      { x: 1020, y: 220, width: 20, height: 20, collected: false },
+      { x: 1220, y: 200, width: 20, height: 20, collected: false },
+      { x: 1420, y: 220, width: 20, height: 20, collected: false },
+      { x: 1580, y: 180, width: 20, height: 20, collected: false },
+      { x: 1740, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 880, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
+      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 260,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.3,
+        speed: 1.3,
+        leftBound: 200,
+        rightBound: 460,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "crab",
+        x: 980,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.4,
+        speed: 1.4,
+        leftBound: 900,
+        rightBound: 1220,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 30,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1340,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 170,
+        amplitude: 28,
+        phaseOffset: Math.PI / 1.5,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 720,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.05,
+        speed: 1.05,
+        leftBound: 660,
+        rightBound: 920,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1460,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.15,
+        speed: 1.15,
+        leftBound: 1380,
+        rightBound: 1680,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 200, width: 260, height: 110, baseColor: "#2a5e6c", shadowColor: "#14353c" },
+      { x: 920, width: 320, height: 130, baseColor: "#2a5e6c", shadowColor: "#14353c" },
+      { x: 1620, width: 300, height: 120, baseColor: "#2a5e6c", shadowColor: "#14353c" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 230, height: 100, baseColor: "#58a1a6", shadowColor: "#316367" },
+      { x: 780, width: 260, height: 120, baseColor: "#58a1a6", shadowColor: "#316367" },
+      { x: 1440, width: 240, height: 115, baseColor: "#58a1a6", shadowColor: "#316367" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.1 },
+      { x: 600, y: 60, scale: 1.4 },
+      { x: 1060, y: 80, scale: 1.0 },
+      { x: 1500, y: 65, scale: 1.2 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#ffe3f2",
+      groundColor: "#43282c",
+      groundDark: "#231316",
+      groundHighlight: "#7c4e57",
+    },
+    levelData: [
+      "                                        ",
+      "  XX                 XX                 ",
+      "        XXX                 XX          ",
+      "                 XX               XX    ",
+      "    XXXX                 XXXX           ",
+      "            XX     XX                   ",
+      "  XX     XXXX                XX         ",
+      "        XX        XXX               XX  ",
+      " XX           XX         XX        XX  ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 660, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1040, y: 170, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 360, y: 210, width: 40, height: 40, broken: false },
+      { x: 400, y: 210, width: 40, height: 40, broken: false },
+      { x: 900, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 200, y: 230, width: 20, height: 20, collected: false },
+      { x: 280, y: 200, width: 20, height: 20, collected: false },
+      { x: 500, y: 160, width: 20, height: 20, collected: false },
+      { x: 620, y: 190, width: 20, height: 20, collected: false },
+      { x: 790, y: 150, width: 20, height: 20, collected: false },
+      { x: 960, y: 210, width: 20, height: 20, collected: false },
+      { x: 1180, y: 200, width: 20, height: 20, collected: false },
+      { x: 1380, y: 220, width: 20, height: 20, collected: false },
+      { x: 1560, y: 180, width: 20, height: 20, collected: false },
+      { x: 1700, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 860, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 240, y: 190, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 820, y: 140, type: "helm", width: 24, height: 24, collected: false },
+      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 260,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.3,
+        speed: 1.3,
+        leftBound: 200,
+        rightBound: 460,
+        platformY: groundY,
+        phaseOffset: Math.PI / 5,
+      },
+      {
+        type: "crab",
+        x: 980,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.35,
+        speed: 1.35,
+        leftBound: 900,
+        rightBound: 1220,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.15,
+        speed: 1.15,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 32,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1320,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.25,
+        speed: 1.25,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 150,
+        amplitude: 28,
+        phaseOffset: (Math.PI * 2) / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.12,
+        speed: 1.12,
+        leftBound: 660,
+        rightBound: 920,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1460,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.18,
+        speed: 1.18,
+        leftBound: 1380,
+        rightBound: 1700,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 200, width: 260, height: 110, baseColor: "#6f3c49", shadowColor: "#411f28" },
+      { x: 900, width: 320, height: 130, baseColor: "#6f3c49", shadowColor: "#411f28" },
+      { x: 1600, width: 300, height: 120, baseColor: "#6f3c49", shadowColor: "#411f28" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 230, height: 100, baseColor: "#a65f7b", shadowColor: "#6d3b4f" },
+      { x: 780, width: 260, height: 120, baseColor: "#a65f7b", shadowColor: "#6d3b4f" },
+      { x: 1440, width: 240, height: 115, baseColor: "#a65f7b", shadowColor: "#6d3b4f" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.0 },
+      { x: 560, y: 60, scale: 1.3 },
+      { x: 1020, y: 80, scale: 0.9 },
+      { x: 1480, y: 70, scale: 1.1 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#caddff",
+      groundColor: "#2b2f3a",
+      groundDark: "#161820",
+      groundHighlight: "#556079",
+    },
+    levelData: [
+      "                                        ",
+      "      XX            XX                  ",
+      "   XX        XX             XX         ",
+      "               XX                XX    ",
+      "    XXXX                   XX         ",
+      "            XXXX                  XX  ",
+      "  XX                 XX         XX     ",
+      "       XX      XXX                 X   ",
+      " XX         XX        XX      XX      ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 660, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1020, y: 160, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 360, y: 210, width: 40, height: 40, broken: false },
+      { x: 400, y: 210, width: 40, height: 40, broken: false },
+      { x: 900, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 180, y: 230, width: 20, height: 20, collected: false },
+      { x: 260, y: 200, width: 20, height: 20, collected: false },
+      { x: 480, y: 160, width: 20, height: 20, collected: false },
+      { x: 600, y: 190, width: 20, height: 20, collected: false },
+      { x: 780, y: 150, width: 20, height: 20, collected: false },
+      { x: 960, y: 210, width: 20, height: 20, collected: false },
+      { x: 1180, y: 200, width: 20, height: 20, collected: false },
+      { x: 1380, y: 220, width: 20, height: 20, collected: false },
+      { x: 1540, y: 180, width: 20, height: 20, collected: false },
+      { x: 1700, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 860, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
+      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 260,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.35,
+        speed: 1.35,
+        leftBound: 200,
+        rightBound: 480,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "crab",
+        x: 980,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.4,
+        speed: 1.4,
+        leftBound: 900,
+        rightBound: 1220,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 32,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1320,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.25,
+        speed: 1.25,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 150,
+        amplitude: 28,
+        phaseOffset: (Math.PI * 2) / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.15,
+        speed: 1.15,
+        leftBound: 660,
+        rightBound: 940,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1460,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1380,
+        rightBound: 1700,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 200, width: 260, height: 110, baseColor: "#273b63", shadowColor: "#111d35" },
+      { x: 900, width: 320, height: 130, baseColor: "#273b63", shadowColor: "#111d35" },
+      { x: 1600, width: 300, height: 120, baseColor: "#273b63", shadowColor: "#111d35" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 230, height: 100, baseColor: "#4d73c2", shadowColor: "#2a4171" },
+      { x: 780, width: 260, height: 120, baseColor: "#4d73c2", shadowColor: "#2a4171" },
+      { x: 1440, width: 240, height: 115, baseColor: "#4d73c2", shadowColor: "#2a4171" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.0 },
+      { x: 580, y: 60, scale: 1.3 },
+      { x: 1040, y: 80, scale: 0.9 },
+      { x: 1500, y: 70, scale: 1.1 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#ffebb5",
+      groundColor: "#3a291a",
+      groundDark: "#1f150d",
+      groundHighlight: "#6d4b2a",
+    },
+    levelData: [
+      "                                        ",
+      "    XX          XX                     ",
+      "            XXX         XX             ",
+      "  XX                XX          XX     ",
+      "         XXXX                      XX  ",
+      "    XXX           XX                  ",
+      "        XX     XXX        XX          ",
+      "   XX        XX     XXX               ",
+      " XX    XX          XX         XX      ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 660, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1000, y: 160, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 360, y: 210, width: 40, height: 40, broken: false },
+      { x: 400, y: 210, width: 40, height: 40, broken: false },
+      { x: 900, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 180, y: 230, width: 20, height: 20, collected: false },
+      { x: 260, y: 200, width: 20, height: 20, collected: false },
+      { x: 480, y: 160, width: 20, height: 20, collected: false },
+      { x: 600, y: 190, width: 20, height: 20, collected: false },
+      { x: 780, y: 150, width: 20, height: 20, collected: false },
+      { x: 960, y: 210, width: 20, height: 20, collected: false },
+      { x: 1180, y: 200, width: 20, height: 20, collected: false },
+      { x: 1360, y: 220, width: 20, height: 20, collected: false },
+      { x: 1520, y: 180, width: 20, height: 20, collected: false },
+      { x: 1700, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 860, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
+      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 260,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.3,
+        speed: 1.3,
+        leftBound: 200,
+        rightBound: 480,
+        platformY: groundY,
+        phaseOffset: Math.PI / 5,
+      },
+      {
+        type: "crab",
+        x: 980,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.35,
+        speed: 1.35,
+        leftBound: 900,
+        rightBound: 1220,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 32,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1320,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.3,
+        speed: 1.3,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 150,
+        amplitude: 28,
+        phaseOffset: (Math.PI * 2) / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 660,
+        rightBound: 920,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1460,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1380,
+        rightBound: 1700,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 200, width: 260, height: 110, baseColor: "#4f4d34", shadowColor: "#2a291c" },
+      { x: 900, width: 320, height: 130, baseColor: "#4f4d34", shadowColor: "#2a291c" },
+      { x: 1600, width: 300, height: 120, baseColor: "#4f4d34", shadowColor: "#2a291c" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 230, height: 100, baseColor: "#7f7248", shadowColor: "#4d452c" },
+      { x: 780, width: 260, height: 120, baseColor: "#7f7248", shadowColor: "#4d452c" },
+      { x: 1440, width: 240, height: 115, baseColor: "#7f7248", shadowColor: "#4d452c" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.0 },
+      { x: 560, y: 60, scale: 1.3 },
+      { x: 1020, y: 80, scale: 0.9 },
+      { x: 1480, y: 70, scale: 1.1 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#b3ffe0",
+      groundColor: "#2a3828",
+      groundDark: "#132015",
+      groundHighlight: "#567a4f",
+    },
+    levelData: [
+      "                                        ",
+      "    XX         XX             XX        ",
+      "          XXX        XX                 ",
+      "  XX              XXX           XX      ",
+      "       XXXX                    XX       ",
+      "            XX         XX              ",
+      "   XX        XXX              XX        ",
+      "       XX          XX     XXX          ",
+      "  XX        XX          XX        XX   ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 660, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1060, y: 170, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 360, y: 210, width: 40, height: 40, broken: false },
+      { x: 400, y: 210, width: 40, height: 40, broken: false },
+      { x: 900, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 200, y: 230, width: 20, height: 20, collected: false },
+      { x: 280, y: 200, width: 20, height: 20, collected: false },
+      { x: 500, y: 160, width: 20, height: 20, collected: false },
+      { x: 640, y: 190, width: 20, height: 20, collected: false },
+      { x: 820, y: 150, width: 20, height: 20, collected: false },
+      { x: 980, y: 210, width: 20, height: 20, collected: false },
+      { x: 1180, y: 200, width: 20, height: 20, collected: false },
+      { x: 1360, y: 220, width: 20, height: 20, collected: false },
+      { x: 1540, y: 180, width: 20, height: 20, collected: false },
+      { x: 1700, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 860, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 240, y: 190, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 820, y: 140, type: "helm", width: 24, height: 24, collected: false },
+      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 260,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.25,
+        speed: 1.25,
+        leftBound: 200,
+        rightBound: 480,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "crab",
+        x: 980,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.35,
+        speed: 1.35,
+        leftBound: 900,
+        rightBound: 1220,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 32,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1320,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 150,
+        amplitude: 28,
+        phaseOffset: (Math.PI * 2) / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.08,
+        speed: 1.08,
+        leftBound: 660,
+        rightBound: 920,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1460,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.18,
+        speed: 1.18,
+        leftBound: 1380,
+        rightBound: 1700,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 200, width: 260, height: 110, baseColor: "#2b5e43", shadowColor: "#173425" },
+      { x: 900, width: 320, height: 130, baseColor: "#2b5e43", shadowColor: "#173425" },
+      { x: 1600, width: 300, height: 120, baseColor: "#2b5e43", shadowColor: "#173425" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 230, height: 100, baseColor: "#5ca874", shadowColor: "#336245" },
+      { x: 780, width: 260, height: 120, baseColor: "#5ca874", shadowColor: "#336245" },
+      { x: 1440, width: 240, height: 115, baseColor: "#5ca874", shadowColor: "#336245" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.1 },
+      { x: 560, y: 60, scale: 1.3 },
+      { x: 1020, y: 80, scale: 0.9 },
+      { x: 1480, y: 70, scale: 1.1 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#e7d2ff",
+      groundColor: "#302033",
+      groundDark: "#180f1a",
+      groundHighlight: "#5e3e64",
+    },
+    levelData: [
+      "                                        ",
+      "     XX        XX                  XX   ",
+      "            XXX         XX              ",
+      "  XX               XX            XX     ",
+      "       XXXX                  XX         ",
+      "            XX       XXXX              ",
+      "   XX      XXX                XX        ",
+      "        XX        XX      XXX          ",
+      " XX           XX        XX        XX   ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 660, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1040, y: 170, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 360, y: 210, width: 40, height: 40, broken: false },
+      { x: 400, y: 210, width: 40, height: 40, broken: false },
+      { x: 900, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 200, y: 230, width: 20, height: 20, collected: false },
+      { x: 280, y: 200, width: 20, height: 20, collected: false },
+      { x: 520, y: 160, width: 20, height: 20, collected: false },
+      { x: 640, y: 190, width: 20, height: 20, collected: false },
+      { x: 820, y: 150, width: 20, height: 20, collected: false },
+      { x: 980, y: 220, width: 20, height: 20, collected: false },
+      { x: 1180, y: 200, width: 20, height: 20, collected: false },
+      { x: 1360, y: 220, width: 20, height: 20, collected: false },
+      { x: 1520, y: 180, width: 20, height: 20, collected: false },
+      { x: 1700, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 860, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
+      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 260,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.3,
+        speed: 1.3,
+        leftBound: 200,
+        rightBound: 480,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "crab",
+        x: 980,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.35,
+        speed: 1.35,
+        leftBound: 900,
+        rightBound: 1220,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 32,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1320,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.3,
+        speed: 1.3,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 150,
+        amplitude: 28,
+        phaseOffset: (Math.PI * 2) / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.12,
+        speed: 1.12,
+        leftBound: 660,
+        rightBound: 940,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1460,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.18,
+        speed: 1.18,
+        leftBound: 1380,
+        rightBound: 1700,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 200, width: 260, height: 110, baseColor: "#4b3770", shadowColor: "#2a1f40" },
+      { x: 900, width: 320, height: 130, baseColor: "#4b3770", shadowColor: "#2a1f40" },
+      { x: 1600, width: 300, height: 120, baseColor: "#4b3770", shadowColor: "#2a1f40" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 230, height: 100, baseColor: "#8754a3", shadowColor: "#553067" },
+      { x: 780, width: 260, height: 120, baseColor: "#8754a3", shadowColor: "#553067" },
+      { x: 1440, width: 240, height: 115, baseColor: "#8754a3", shadowColor: "#553067" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.0 },
+      { x: 560, y: 60, scale: 1.3 },
+      { x: 1020, y: 80, scale: 0.9 },
+      { x: 1480, y: 70, scale: 1.1 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#a9ecff",
+      groundColor: "#273237",
+      groundDark: "#12181a",
+      groundHighlight: "#4e6066",
+    },
+    levelData: [
+      "                                        ",
+      "      XX      XX                        ",
+      "   XXX              XX                  ",
+      "                XX          XX         ",
+      "  XX       XXXX                     XX ",
+      "          XX       XX                 ",
+      "   XX            XXX       XX         ",
+      "        XX    XX        XXX           ",
+      " XX          XX            XX      XX ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 660, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1040, y: 170, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 360, y: 210, width: 40, height: 40, broken: false },
+      { x: 400, y: 210, width: 40, height: 40, broken: false },
+      { x: 900, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 200, y: 230, width: 20, height: 20, collected: false },
+      { x: 280, y: 200, width: 20, height: 20, collected: false },
+      { x: 520, y: 160, width: 20, height: 20, collected: false },
+      { x: 640, y: 190, width: 20, height: 20, collected: false },
+      { x: 820, y: 150, width: 20, height: 20, collected: false },
+      { x: 980, y: 210, width: 20, height: 20, collected: false },
+      { x: 1180, y: 200, width: 20, height: 20, collected: false },
+      { x: 1360, y: 220, width: 20, height: 20, collected: false },
+      { x: 1520, y: 180, width: 20, height: 20, collected: false },
+      { x: 1700, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 860, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 240, y: 190, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 820, y: 140, type: "helm", width: 24, height: 24, collected: false },
+      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 260,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.3,
+        speed: 1.3,
+        leftBound: 200,
+        rightBound: 480,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "crab",
+        x: 980,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.35,
+        speed: 1.35,
+        leftBound: 900,
+        rightBound: 1220,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 32,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1320,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.3,
+        speed: 1.3,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 150,
+        amplitude: 28,
+        phaseOffset: (Math.PI * 2) / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.12,
+        speed: 1.12,
+        leftBound: 660,
+        rightBound: 940,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1460,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.18,
+        speed: 1.18,
+        leftBound: 1380,
+        rightBound: 1700,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 200, width: 260, height: 110, baseColor: "#1c3b4d", shadowColor: "#0b1f2a" },
+      { x: 900, width: 320, height: 130, baseColor: "#1c3b4d", shadowColor: "#0b1f2a" },
+      { x: 1600, width: 300, height: 120, baseColor: "#1c3b4d", shadowColor: "#0b1f2a" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 230, height: 100, baseColor: "#336d88", shadowColor: "#1c3d4c" },
+      { x: 780, width: 260, height: 120, baseColor: "#336d88", shadowColor: "#1c3d4c" },
+      { x: 1440, width: 240, height: 115, baseColor: "#336d88", shadowColor: "#1c3d4c" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.0 },
+      { x: 560, y: 60, scale: 1.3 },
+      { x: 1020, y: 80, scale: 0.9 },
+      { x: 1480, y: 70, scale: 1.1 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#ffdfa6",
+      groundColor: "#473123",
+      groundDark: "#281b11",
+      groundHighlight: "#7c543b",
+    },
+    levelData: [
+      "                                        ",
+      "        XX        XX                    ",
+      "   XX          XXX         XX          ",
+      "             XX                 XX     ",
+      "  XX                 XXXX              ",
+      "        XXXX                XX         ",
+      "   XX        XX      XXXX            X ",
+      "         XX            XX             ",
+      " XX    XX        XX          XX       ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 640, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 980, y: 170, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 360, y: 210, width: 40, height: 40, broken: false },
+      { x: 400, y: 210, width: 40, height: 40, broken: false },
+      { x: 900, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 200, y: 230, width: 20, height: 20, collected: false },
+      { x: 280, y: 200, width: 20, height: 20, collected: false },
+      { x: 520, y: 160, width: 20, height: 20, collected: false },
+      { x: 640, y: 190, width: 20, height: 20, collected: false },
+      { x: 820, y: 150, width: 20, height: 20, collected: false },
+      { x: 980, y: 210, width: 20, height: 20, collected: false },
+      { x: 1180, y: 200, width: 20, height: 20, collected: false },
+      { x: 1380, y: 220, width: 20, height: 20, collected: false },
+      { x: 1540, y: 180, width: 20, height: 20, collected: false },
+      { x: 1700, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 860, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
+      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 260,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.3,
+        speed: 1.3,
+        leftBound: 200,
+        rightBound: 480,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "crab",
+        x: 980,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.35,
+        speed: 1.35,
+        leftBound: 900,
+        rightBound: 1220,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 32,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1320,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.3,
+        speed: 1.3,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 150,
+        amplitude: 28,
+        phaseOffset: (Math.PI * 2) / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.12,
+        speed: 1.12,
+        leftBound: 660,
+        rightBound: 940,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1460,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.18,
+        speed: 1.18,
+        leftBound: 1380,
+        rightBound: 1700,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 200, width: 260, height: 110, baseColor: "#61512d", shadowColor: "#3a301a" },
+      { x: 900, width: 320, height: 130, baseColor: "#61512d", shadowColor: "#3a301a" },
+      { x: 1600, width: 300, height: 120, baseColor: "#61512d", shadowColor: "#3a301a" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 230, height: 100, baseColor: "#9b7c40", shadowColor: "#604f28" },
+      { x: 780, width: 260, height: 120, baseColor: "#9b7c40", shadowColor: "#604f28" },
+      { x: 1440, width: 240, height: 115, baseColor: "#9b7c40", shadowColor: "#604f28" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.0 },
+      { x: 560, y: 60, scale: 1.3 },
+      { x: 1020, y: 80, scale: 0.9 },
+      { x: 1480, y: 70, scale: 1.1 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#aee5ff",
+      groundColor: "#2d2a33",
+      groundDark: "#16141a",
+      groundHighlight: "#575165",
+    },
+    levelData: [
+      "                                        ",
+      "      XX             XX                 ",
+      "  XX         XXX              XX       ",
+      "            XX                XXXX     ",
+      "     XXXX                       XX     ",
+      "               XX     XX               ",
+      "  XX     XXX             XX           ",
+      "        XX      XX    XXX             ",
+      " XX            XX           XX     XX ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 640, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 980, y: 160, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 360, y: 210, width: 40, height: 40, broken: false },
+      { x: 400, y: 210, width: 40, height: 40, broken: false },
+      { x: 900, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 200, y: 230, width: 20, height: 20, collected: false },
+      { x: 280, y: 200, width: 20, height: 20, collected: false },
+      { x: 520, y: 160, width: 20, height: 20, collected: false },
+      { x: 640, y: 190, width: 20, height: 20, collected: false },
+      { x: 820, y: 150, width: 20, height: 20, collected: false },
+      { x: 980, y: 210, width: 20, height: 20, collected: false },
+      { x: 1180, y: 200, width: 20, height: 20, collected: false },
+      { x: 1380, y: 220, width: 20, height: 20, collected: false },
+      { x: 1540, y: 180, width: 20, height: 20, collected: false },
+      { x: 1700, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 860, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
+      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 260,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.3,
+        speed: 1.3,
+        leftBound: 200,
+        rightBound: 480,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "crab",
+        x: 980,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.35,
+        speed: 1.35,
+        leftBound: 900,
+        rightBound: 1220,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 32,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1320,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.3,
+        speed: 1.3,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 150,
+        amplitude: 28,
+        phaseOffset: (Math.PI * 2) / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.12,
+        speed: 1.12,
+        leftBound: 660,
+        rightBound: 940,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1460,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.18,
+        speed: 1.18,
+        leftBound: 1380,
+        rightBound: 1700,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 200, width: 260, height: 110, baseColor: "#2d3560", shadowColor: "#161c33" },
+      { x: 900, width: 320, height: 130, baseColor: "#2d3560", shadowColor: "#161c33" },
+      { x: 1600, width: 300, height: 120, baseColor: "#2d3560", shadowColor: "#161c33" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 230, height: 100, baseColor: "#5863a3", shadowColor: "#333b63" },
+      { x: 780, width: 260, height: 120, baseColor: "#5863a3", shadowColor: "#333b63" },
+      { x: 1440, width: 240, height: 115, baseColor: "#5863a3", shadowColor: "#333b63" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.0 },
+      { x: 560, y: 60, scale: 1.3 },
+      { x: 1020, y: 80, scale: 0.9 },
+      { x: 1480, y: 70, scale: 1.1 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#ffc7c2",
+      groundColor: "#352020",
+      groundDark: "#1b0f10",
+      groundHighlight: "#6c3c3c",
+    },
+    levelData: [
+      "                                        ",
+      "    XX          XX          XX          ",
+      "          XXX                XX        ",
+      "  XX                XX           XX     ",
+      "       XXXX                     XX      ",
+      "            XX        XX                ",
+      "   XX      XXX            XX           ",
+      "        XX     XX     XXX              ",
+      " XX         XX        XX       XX      ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 640, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 980, y: 170, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 360, y: 210, width: 40, height: 40, broken: false },
+      { x: 400, y: 210, width: 40, height: 40, broken: false },
+      { x: 900, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 200, y: 230, width: 20, height: 20, collected: false },
+      { x: 280, y: 200, width: 20, height: 20, collected: false },
+      { x: 520, y: 160, width: 20, height: 20, collected: false },
+      { x: 640, y: 190, width: 20, height: 20, collected: false },
+      { x: 820, y: 150, width: 20, height: 20, collected: false },
+      { x: 980, y: 210, width: 20, height: 20, collected: false },
+      { x: 1180, y: 200, width: 20, height: 20, collected: false },
+      { x: 1380, y: 220, width: 20, height: 20, collected: false },
+      { x: 1540, y: 180, width: 20, height: 20, collected: false },
+      { x: 1700, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 860, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
+      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 260,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.3,
+        speed: 1.3,
+        leftBound: 200,
+        rightBound: 480,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "crab",
+        x: 980,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.35,
+        speed: 1.35,
+        leftBound: 900,
+        rightBound: 1220,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 32,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1320,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.3,
+        speed: 1.3,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 150,
+        amplitude: 28,
+        phaseOffset: (Math.PI * 2) / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.12,
+        speed: 1.12,
+        leftBound: 660,
+        rightBound: 940,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1460,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.18,
+        speed: 1.18,
+        leftBound: 1380,
+        rightBound: 1700,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 200, width: 260, height: 110, baseColor: "#6a3241", shadowColor: "#3d1a24" },
+      { x: 900, width: 320, height: 130, baseColor: "#6a3241", shadowColor: "#3d1a24" },
+      { x: 1600, width: 300, height: 120, baseColor: "#6a3241", shadowColor: "#3d1a24" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 230, height: 100, baseColor: "#a7445c", shadowColor: "#6a2a38" },
+      { x: 780, width: 260, height: 120, baseColor: "#a7445c", shadowColor: "#6a2a38" },
+      { x: 1440, width: 240, height: 115, baseColor: "#a7445c", shadowColor: "#6a2a38" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.0 },
+      { x: 560, y: 60, scale: 1.3 },
+      { x: 1020, y: 80, scale: 0.9 },
+      { x: 1480, y: 70, scale: 1.1 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#8bd6ff",
+      groundColor: "#2f3028",
+      groundDark: "#171713",
+      groundHighlight: "#5b5c49",
+    },
+    levelData: [
+      "                                        ",
+      "     XX          XX            XX       ",
+      "           XXX               XX         ",
+      "  XX                XX              XX  ",
+      "       XXXX                  XX        ",
+      "                 XXXX                XX ",
+      "   XXX     XX                XXX       ",
+      "          XX      XXX                 X ",
+      " XX    XX         XX      XX          X",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 340, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 720, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1160, y: 170, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 380, y: 210, width: 40, height: 40, broken: false },
+      { x: 420, y: 210, width: 40, height: 40, broken: false },
+      { x: 940, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 200, y: 230, width: 20, height: 20, collected: false },
+      { x: 280, y: 200, width: 20, height: 20, collected: false },
+      { x: 520, y: 160, width: 20, height: 20, collected: false },
+      { x: 640, y: 190, width: 20, height: 20, collected: false },
+      { x: 800, y: 150, width: 20, height: 20, collected: false },
+      { x: 1020, y: 220, width: 20, height: 20, collected: false },
+      { x: 1220, y: 200, width: 20, height: 20, collected: false },
+      { x: 1420, y: 210, width: 20, height: 20, collected: false },
+      { x: 1600, y: 170, width: 20, height: 20, collected: false },
+      { x: 1780, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 880, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
+      { x: 860, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 1460, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 280,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.25,
+        speed: 1.25,
+        leftBound: 200,
+        rightBound: 480,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "crab",
+        x: 1080,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.35,
+        speed: 1.35,
+        leftBound: 1000,
+        rightBound: 1320,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 30,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1340,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 150,
+        amplitude: 28,
+        phaseOffset: Math.PI / 1.5,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 660,
+        rightBound: 940,
+        platformY: groundY,
+        phaseOffset: Math.PI / 5,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1500,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1420,
+        rightBound: 1720,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 200, width: 260, height: 110, baseColor: "#2c4f5c", shadowColor: "#173038" },
+      { x: 920, width: 320, height: 130, baseColor: "#2c4f5c", shadowColor: "#173038" },
+      { x: 1600, width: 300, height: 120, baseColor: "#2c4f5c", shadowColor: "#173038" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 230, height: 100, baseColor: "#56a5a7", shadowColor: "#326165" },
+      { x: 780, width: 260, height: 120, baseColor: "#56a5a7", shadowColor: "#326165" },
+      { x: 1460, width: 240, height: 115, baseColor: "#56a5a7", shadowColor: "#326165" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.1 },
+      { x: 580, y: 60, scale: 1.3 },
+      { x: 1040, y: 80, scale: 1.0 },
+      { x: 1500, y: 65, scale: 1.2 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#ffd9de",
+      groundColor: "#342327",
+      groundDark: "#1b1113",
+      groundHighlight: "#5f3c42",
+    },
+    levelData: [
+      "                                        ",
+      "   XX        XX              XX         ",
+      "           XXX        XX                ",
+      "  XX               XXXX          XX     ",
+      "         XXXX                      XX   ",
+      "     XXX              XX                ",
+      "  XX        XXX               XXXX      ",
+      "         XX     XX                      ",
+      "  XX              XX       XX      XX   ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 300, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 640, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1000, y: 170, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 340, y: 210, width: 40, height: 40, broken: false },
+      { x: 380, y: 210, width: 40, height: 40, broken: false },
+      { x: 920, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 180, y: 240, width: 20, height: 20, collected: false },
+      { x: 260, y: 200, width: 20, height: 20, collected: false },
+      { x: 480, y: 160, width: 20, height: 20, collected: false },
+      { x: 620, y: 190, width: 20, height: 20, collected: false },
+      { x: 780, y: 150, width: 20, height: 20, collected: false },
+      { x: 960, y: 220, width: 20, height: 20, collected: false },
+      { x: 1180, y: 200, width: 20, height: 20, collected: false },
+      { x: 1380, y: 220, width: 20, height: 20, collected: false },
+      { x: 1540, y: 180, width: 20, height: 20, collected: false },
+      { x: 1720, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 860, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 240, y: 190, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 820, y: 140, type: "helm", width: 24, height: 24, collected: false },
+      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 260,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.3,
+        speed: 1.3,
+        leftBound: 200,
+        rightBound: 480,
+        platformY: groundY,
+        phaseOffset: Math.PI / 5,
+      },
+      {
+        type: "crab",
+        x: 980,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.4,
+        speed: 1.4,
+        leftBound: 900,
+        rightBound: 1220,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 32,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1320,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.3,
+        speed: 1.3,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 150,
+        amplitude: 28,
+        phaseOffset: (Math.PI * 2) / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.15,
+        speed: 1.15,
+        leftBound: 660,
+        rightBound: 940,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1460,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1380,
+        rightBound: 1700,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 180, width: 250, height: 110, baseColor: "#6f4b4f", shadowColor: "#432b2e" },
+      { x: 860, width: 320, height: 130, baseColor: "#6f4b4f", shadowColor: "#432b2e" },
+      { x: 1560, width: 300, height: 120, baseColor: "#6f4b4f", shadowColor: "#432b2e" },
+    ],
+    backgroundHillsNear: [
+      { x: 160, width: 230, height: 100, baseColor: "#a06f7a", shadowColor: "#6d4850" },
+      { x: 760, width: 260, height: 120, baseColor: "#a06f7a", shadowColor: "#6d4850" },
+      { x: 1440, width: 240, height: 115, baseColor: "#a06f7a", shadowColor: "#6d4850" },
+    ],
+    backgroundClouds: [
+      { x: 200, y: 70, scale: 1.0 },
+      { x: 560, y: 60, scale: 1.3 },
+      { x: 1020, y: 80, scale: 0.9 },
+      { x: 1480, y: 70, scale: 1.1 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#eaf2ff",
+      groundColor: "#2c3038",
+      groundDark: "#17191f",
+      groundHighlight: "#585d6c",
+    },
+    levelData: [
+      "                                        ",
+      "      XX          XX                    ",
+      "  XX         XX          XX            ",
+      "            XXXX                        ",
+      "     XXXX                     XX       ",
+      "                XX      XXXX           ",
+      "  XX      XXXX            XX           ",
+      "        XX          XXXX          XX   ",
+      "  XX         XX                XX      ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 660, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 980, y: 160, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 360, y: 210, width: 40, height: 40, broken: false },
+      { x: 400, y: 210, width: 40, height: 40, broken: false },
+      { x: 900, y: 170, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 180, y: 240, width: 20, height: 20, collected: false },
+      { x: 260, y: 200, width: 20, height: 20, collected: false },
+      { x: 500, y: 160, width: 20, height: 20, collected: false },
+      { x: 620, y: 190, width: 20, height: 20, collected: false },
+      { x: 820, y: 150, width: 20, height: 20, collected: false },
+      { x: 1000, y: 220, width: 20, height: 20, collected: false },
+      { x: 1180, y: 200, width: 20, height: 20, collected: false },
+      { x: 1400, y: 220, width: 20, height: 20, collected: false },
+      { x: 1600, y: 180, width: 20, height: 20, collected: false },
+      { x: 1740, y: 220, width: 20, height: 20, collected: false },
+      { x: 360, y: 120, width: 20, height: 20, collected: false },
+      { x: 860, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
+      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 260,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.3,
+        speed: 1.3,
+        leftBound: 200,
+        rightBound: 480,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "crab",
+        x: 980,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.35,
+        speed: 1.35,
+        leftBound: 900,
+        rightBound: 1220,
+        platformY: groundY,
+        phaseOffset: Math.PI,
+      },
+      {
+        type: "bat",
+        x: 520,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 460,
+        rightBound: 760,
+        baseY: 160,
+        amplitude: 32,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1320,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.3,
+        speed: 1.3,
+        leftBound: 1240,
+        rightBound: 1520,
+        baseY: 150,
+        amplitude: 28,
+        phaseOffset: (Math.PI * 2) / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 700,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: 1.12,
+        speed: 1.12,
+        leftBound: 660,
+        rightBound: 940,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1460,
+        y: groundY - 24,
+        width: 30,
+        height: 24,
+        vx: -1.18,
+        speed: 1.18,
+        leftBound: 1380,
+        rightBound: 1700,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 4) / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 200, width: 260, height: 110, baseColor: "#5b3740", shadowColor: "#311d22" },
+      { x: 900, width: 320, height: 130, baseColor: "#5b3740", shadowColor: "#311d22" },
+      { x: 1600, width: 300, height: 120, baseColor: "#5b3740", shadowColor: "#311d22" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 230, height: 100, baseColor: "#a4525d", shadowColor: "#642d34" },
+      { x: 780, width: 260, height: 120, baseColor: "#a4525d", shadowColor: "#642d34" },
+      { x: 1440, width: 240, height: 115, baseColor: "#a4525d", shadowColor: "#642d34" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.0 },
+      { x: 560, y: 60, scale: 1.3 },
+      { x: 1020, y: 80, scale: 0.9 },
+      { x: 1480, y: 70, scale: 1.1 },
+    ],
+  },
 ];
+
+// ------ LEVEL MANAGEMENT ------
+const levelOrder = ["mateo", "nick", "vas"];
+function getCharacterForLevel(index) {
+  return levelOrder[index % levelOrder.length];
+}
+const totalLevels = levelConfigs.length;
+let currentLevel = 0;
+let currentCharacter = getCharacterForLevel(currentLevel);
 
 let levelData = [];
 let questionBlocks = [];
@@ -594,6 +3770,55 @@ function recomputeWorldWidth() {
   worldWidth = maxRowLength * tileSize;
 }
 
+function enforceFlagSafeZone() {
+  const flagSafeX = Math.max(200, worldWidth - 160);
+  const minRange = 40;
+
+  enemies.forEach((enemy) => {
+    if (typeof enemy.rightBound === "number") {
+      enemy.rightBound = Math.min(enemy.rightBound, flagSafeX);
+    }
+
+    if (typeof enemy.leftBound === "number") {
+      const targetRange = Math.max(minRange, enemy.width || 0);
+      if (typeof enemy.rightBound === "number") {
+        if (enemy.rightBound - enemy.leftBound < targetRange) {
+          enemy.leftBound = Math.max(0, enemy.rightBound - targetRange);
+        } else {
+          enemy.leftBound = Math.max(0, Math.min(enemy.leftBound, enemy.rightBound - targetRange));
+        }
+      } else {
+        enemy.leftBound = Math.max(0, enemy.leftBound);
+      }
+    }
+
+    if (typeof enemy.rightBound === "number" && enemy.x + enemy.width > enemy.rightBound) {
+      enemy.x = enemy.rightBound - enemy.width;
+    }
+    if (typeof enemy.leftBound === "number" && enemy.x < enemy.leftBound) {
+      enemy.x = enemy.leftBound;
+    }
+
+    if (enemy.type === "armadillo" && typeof enemy.rightBound === "number") {
+      const extraBuffer = 120;
+      const desiredRange = Math.max(160, enemy.width * 3 || 120);
+      if (enemy.rightBound > flagSafeX - extraBuffer) {
+        const newRight = Math.max(0, Math.min(flagSafeX - extraBuffer, enemy.rightBound));
+        const newLeft = Math.max(0, newRight - desiredRange);
+        enemy.rightBound = newRight;
+        enemy.leftBound = newLeft;
+        enemy.x = Math.max(newLeft, Math.min(enemy.x, newRight - (enemy.width || 0)));
+      } else if (
+        typeof enemy.leftBound === "number" &&
+        enemy.rightBound - enemy.leftBound < desiredRange
+      ) {
+        enemy.leftBound = Math.max(0, enemy.rightBound - desiredRange);
+        enemy.x = Math.max(enemy.leftBound, Math.min(enemy.x, enemy.rightBound - (enemy.width || 0)));
+      }
+    }
+  });
+}
+
 function loadLevelConfig(index) {
   const config = levelConfigs[index] || levelConfigs[levelConfigs.length - 1] || levelConfigs[0];
   levelData = config.levelData.slice();
@@ -608,6 +3833,7 @@ function loadLevelConfig(index) {
   currentTheme = { ...config.theme };
   platforms = buildPlatformsFromTiles();
   recomputeWorldWidth();
+  enforceFlagSafeZone();
   souvenirPopupTimer = 0;
 }
 
@@ -795,7 +4021,7 @@ const enemyDesigns = {
 };
 
 // ------ GROWTH POWER-UPS ------
-const maxGrowthPowerUps = 2;
+const maxGrowthPowerUps = 1;
 const initialGrowthPowerUps = [
   {
     x: 300,
@@ -916,7 +4142,7 @@ function resetGame() {
   // Complete reset for a brand new run
   respawnPlayer();
   makePlayerSmall();
-  currentCharacter = levelOrder[currentLevel];
+  currentCharacter = getCharacterForLevel(currentLevel);
   loadLevelConfig(currentLevel);
 
   // Reset score
@@ -1290,10 +4516,14 @@ function update() {
 
     if (!overlap) continue;
 
-    const stompMargin = 8;
+    const stompMargin = 10;
     const isFalling = player.vy > 0;
+    const playerPrevBottom = prevY + player.height;
+    const descendingThroughTop =
+      playerPrevBottom <= enemyTop + stompMargin &&
+      playerBottom >= enemyTop + 1;
     const hitFromAbove =
-      isFalling && playerBottom <= enemyTop + stompMargin;
+      isFalling && descendingThroughTop && playerTop < enemyTop + enemy.height * 0.6;
 
     const stompImmune = enemy.type === "armadillo";
     const airborneEnemy = enemy.type === "bat";
@@ -1332,6 +4562,7 @@ function update() {
           color: burstColor,
         });
       }
+      player.y = enemyTop - player.height;
       continue;
     }
 
@@ -2169,94 +5400,128 @@ function drawEnemySprite(enemy) {
   }
 
   if (enemy.type === "armadillo") {
-    const unit = h / 6;
-    const rolling = enemy.rollTimer && enemy.rollTimer > 0;
-    const bodyHeight = h * 0.9;
-    const bodyY = screenY + h - bodyHeight;
-    const centerX = screenX + w / 2;
+    const unit = Math.max(2, h / 10);
+    const ground = screenY + h;
+    const facingRight = enemy.vx >= 0;
+    const dir = facingRight ? 1 : -1;
+    const bodyHeight = h * 0.65;
+    const bodyWidth = w * 0.6;
+    const bodyCenterX = screenX + w / 2 + dir * unit * 0.6;
+    const bodyTop = ground - bodyHeight;
+    const quillBaseX = bodyCenterX - dir * bodyWidth * 0.45;
+    const quillBaseY = bodyTop + bodyHeight * 0.25;
 
+    // Quill fan
+    ctx.lineCap = "round";
+    const quillCount = 18;
+    for (let i = 0; i < quillCount; i++) {
+      const t = i / (quillCount - 1);
+      const angleOffset = (t - 0.2) * (Math.PI * 0.9);
+      const angle = Math.PI / 2 + angleOffset;
+      const length = w * 0.45 + Math.sin(t * Math.PI) * w * 0.2;
+      const tipX = quillBaseX + Math.cos(angle) * length * -dir;
+      const tipY = quillBaseY - Math.sin(angle) * length;
+      const baseOffsetY = t * unit * 0.8;
+      ctx.strokeStyle = design.spikes;
+      ctx.lineWidth = 3 - t * 1.4;
+      ctx.beginPath();
+      ctx.moveTo(quillBaseX, quillBaseY + baseOffsetY);
+      ctx.lineTo(tipX, tipY);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.35)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(quillBaseX - dir * unit * 0.2, quillBaseY + baseOffsetY + unit * 0.2);
+      ctx.lineTo(tipX - dir * 3, tipY + 1);
+      ctx.stroke();
+    }
+
+    // Body silhouette
+    const bodyLeft = bodyCenterX - bodyWidth / 2;
     ctx.fillStyle = design.shell;
     ctx.beginPath();
-    ctx.ellipse(
-      centerX,
-      bodyY + bodyHeight / 2,
-      w / 2,
-      bodyHeight / 2,
-      0,
-      0,
-      Math.PI * 2
+    ctx.moveTo(bodyLeft, ground);
+    ctx.quadraticCurveTo(
+      bodyLeft - dir * bodyWidth * 0.4,
+      bodyTop + unit * 0.2,
+      bodyCenterX - dir * bodyWidth * 0.1,
+      bodyTop - unit * 0.4
     );
+    ctx.quadraticCurveTo(
+      bodyCenterX + dir * bodyWidth * 0.65,
+      bodyTop + bodyHeight * 0.35,
+      bodyCenterX + dir * bodyWidth * 0.35,
+      ground
+    );
+    ctx.closePath();
     ctx.fill();
 
     ctx.fillStyle = design.highlight;
     ctx.beginPath();
-    ctx.ellipse(
-      centerX,
-      bodyY + bodyHeight / 2,
-      w / 2.5,
-      bodyHeight / 2.5,
-      0,
-      0,
-      Math.PI * 2
+    ctx.moveTo(bodyLeft + unit * 0.8, ground - unit * 0.3);
+    ctx.quadraticCurveTo(
+      bodyCenterX - dir * bodyWidth * 0.15,
+      bodyTop + bodyHeight * 0.2,
+      bodyCenterX + dir * bodyWidth * 0.35,
+      ground - unit * 0.4
     );
+    ctx.lineTo(bodyCenterX + dir * bodyWidth * 0.32, ground - unit * 0.2);
+    ctx.quadraticCurveTo(
+      bodyCenterX - dir * bodyWidth * 0.2,
+      bodyTop + bodyHeight * 0.3,
+      bodyLeft + unit * 0.9,
+      ground - unit * 0.1
+    );
+    ctx.closePath();
     ctx.fill();
-
-    // Segments
-    ctx.strokeStyle = "rgba(0,0,0,0.25)";
-    ctx.lineWidth = 2;
-    for (let i = 1; i < 4; i++) {
-      const segX = screenX + (w / 4) * i;
-      ctx.beginPath();
-      ctx.moveTo(segX, bodyY + unit * 0.5);
-      ctx.lineTo(segX, bodyY + bodyHeight - unit * 0.5);
-      ctx.stroke();
-    }
-
-    // Spikes
-    ctx.fillStyle = design.spikes;
-    const spikeCount = 6;
-    for (let i = 0; i < spikeCount; i++) {
-      ctx.beginPath();
-      const startX =
-        screenX + unit * 0.5 + (i / spikeCount) * (w - unit);
-      ctx.moveTo(startX, bodyY + unit * 0.6);
-      ctx.lineTo(startX + unit * 0.3, bodyY - unit * 1.2);
-      ctx.lineTo(startX + unit * 0.6, bodyY + unit * 0.6);
-      ctx.closePath();
-      ctx.fill();
-    }
 
     // Head
+    const headX = bodyCenterX + dir * bodyWidth * 0.42;
+    const headY = ground - bodyHeight * 0.35;
     ctx.fillStyle = design.face;
-    const headPos =
-      enemy.vx >= 0 ? screenX + w - unit * 0.5 : screenX + unit * 0.5;
     ctx.beginPath();
-    ctx.arc(headPos, bodyY + bodyHeight * 0.6, unit * 0.9, 0, Math.PI * 2);
+    ctx.ellipse(headX, headY, unit * 1.2, bodyHeight * 0.3, 0, 0, Math.PI * 2);
     ctx.fill();
 
+    // Nose
+    ctx.fillStyle = "#1d1010";
+    ctx.beginPath();
+    ctx.arc(headX + dir * unit * 0.9, headY + unit * 0.1, unit * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eye
     ctx.fillStyle = design.eye;
     ctx.beginPath();
-    const eyeDir = enemy.vx >= 0 ? -1 : 1;
-    ctx.arc(
-      headPos + eyeDir * unit * 0.3,
-      bodyY + bodyHeight * 0.55,
-      unit * 0.2,
-      0,
-      Math.PI * 2
-    );
+    ctx.arc(headX + dir * -unit * 0.3, headY - unit * 0.2, unit * 0.28, 0, Math.PI * 2);
     ctx.fill();
 
-    if (rolling) {
+    // Mouth
+    ctx.strokeStyle = "#1f1a16";
+    ctx.lineWidth = unit * 0.15;
+    ctx.beginPath();
+    ctx.moveTo(headX + dir * -unit * 0.2, headY + unit * 0.2);
+    ctx.lineTo(headX + dir * 0.6, headY + unit * 0.25);
+    ctx.stroke();
+
+    // Legs
+    ctx.fillStyle = design.face;
+    const legWidth = unit * 0.8;
+    const legHeight = unit * 0.9;
+    for (let i = 0; i < 3; i++) {
+      const step = (bodyWidth - legWidth) / 2;
+      const legX = facingRight
+        ? bodyLeft + i * step
+        : bodyLeft + bodyWidth - legWidth - i * step;
+      ctx.fillRect(legX, ground - legHeight, legWidth, legHeight);
+    }
+
+    if (enemy.rollTimer && enemy.rollTimer > 0) {
       ctx.strokeStyle = "rgba(255,255,255,0.4)";
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2;
+      const blurOffset = dir * unit * 1.5;
       ctx.beginPath();
-      ctx.arc(
-        centerX,
-        bodyY + bodyHeight / 2,
-        w / 2.5,
-        Math.sin(phase) * Math.PI,
-        Math.sin(phase) * Math.PI + Math.PI / 1.5
-      );
+      ctx.moveTo(bodyLeft + blurOffset, ground - bodyHeight * 0.2);
+      ctx.lineTo(bodyLeft + blurOffset, bodyTop + unit);
       ctx.stroke();
     }
 
@@ -2676,118 +5941,71 @@ function drawGrowthPowerUp(powerUp) {
   ctx.save();
   ctx.translate(centerX, centerY);
 
-  const bubbleRadius = Math.min(width, height) * 0.7;
-  const bubbleStroke = ctx.createRadialGradient(0, 0, bubbleRadius * 0.4, 0, 0, bubbleRadius);
-  bubbleStroke.addColorStop(0, "rgba(255,255,255,0.9)");
-  bubbleStroke.addColorStop(1, "rgba(255,255,255,0.2)");
-
+  const bubbleRadius = Math.min(width, height) * 0.72;
+  const bubbleStroke = ctx.createRadialGradient(0, 0, bubbleRadius * 0.35, 0, 0, bubbleRadius);
+  bubbleStroke.addColorStop(0, "rgba(255,255,255,0.85)");
+  bubbleStroke.addColorStop(1, "rgba(255,255,255,0.25)");
   ctx.lineWidth = 3;
   ctx.strokeStyle = bubbleStroke;
   ctx.beginPath();
   ctx.arc(0, 0, bubbleRadius, 0, Math.PI * 2);
   ctx.stroke();
 
-  const highlightGradient = ctx.createLinearGradient(-bubbleRadius, -bubbleRadius, bubbleRadius, bubbleRadius);
-  highlightGradient.addColorStop(0, "rgba(255,255,255,0.35)");
-  highlightGradient.addColorStop(1, "rgba(255,255,255,0.05)");
-  ctx.fillStyle = highlightGradient;
+  const glare = ctx.createLinearGradient(-bubbleRadius, -bubbleRadius, bubbleRadius * 0.2, bubbleRadius * 0.2);
+  glare.addColorStop(0, "rgba(255,255,255,0.45)");
+  glare.addColorStop(1, "rgba(255,255,255,0.05)");
+  ctx.fillStyle = glare;
   ctx.beginPath();
-  ctx.arc(-bubbleRadius * 0.4, -bubbleRadius * 0.4, bubbleRadius * 0.25, 0, Math.PI * 2);
+  ctx.arc(-bubbleRadius * 0.45, -bubbleRadius * 0.4, bubbleRadius * 0.22, 0, Math.PI * 2);
   ctx.fill();
 
-  // Beer glass
-  const mugWidth = bubbleRadius * 0.75;
-  const mugHeight = bubbleRadius * 0.95;
-  const mugX = -mugWidth / 2;
-  const mugY = -mugHeight / 2 + bubbleRadius * 0.25;
-
-  ctx.fillStyle = "#fdf4d9";
-  const mugRadius = 4;
+  // Star power-up
+  const starRadius = bubbleRadius * 0.6;
+  const starPoints = 5;
+  ctx.save();
+  const starGradient = ctx.createRadialGradient(0, -starRadius * 0.3, starRadius * 0.1, 0, 0, starRadius);
+  starGradient.addColorStop(0, "#fff5d4");
+  starGradient.addColorStop(0.5, "#ffd94d");
+  starGradient.addColorStop(1, "#ffb347");
+  ctx.fillStyle = starGradient;
+  ctx.strokeStyle = "rgba(255,255,255,0.55)";
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(mugX + mugRadius, mugY);
-  ctx.lineTo(mugX + mugWidth - mugRadius, mugY);
-  ctx.quadraticCurveTo(mugX + mugWidth, mugY, mugX + mugWidth, mugY + mugRadius);
-  ctx.lineTo(mugX + mugWidth, mugY + mugHeight - mugRadius);
-  ctx.quadraticCurveTo(
-    mugX + mugWidth,
-    mugY + mugHeight,
-    mugX + mugWidth - mugRadius,
-    mugY + mugHeight
-  );
-  ctx.lineTo(mugX + mugRadius, mugY + mugHeight);
-  ctx.quadraticCurveTo(mugX, mugY + mugHeight, mugX, mugY + mugHeight - mugRadius);
-  ctx.lineTo(mugX, mugY + mugRadius);
-  ctx.quadraticCurveTo(mugX, mugY, mugX + mugRadius, mugY);
-  ctx.closePath();
-  ctx.fill();
-
-  const beerGradient = ctx.createLinearGradient(0, mugY + 6, 0, mugY + mugHeight - 8);
-  beerGradient.addColorStop(0, "#fff0b3");
-  beerGradient.addColorStop(0.4, "#ffd45f");
-  beerGradient.addColorStop(1, "#f6961d");
-  ctx.fillStyle = beerGradient;
-  ctx.fillRect(mugX + 4, mugY + 12, mugWidth - 8, mugHeight - 22);
-
-  const baseHighlight = ctx.createLinearGradient(mugX, mugY, mugX, mugY + 15);
-  baseHighlight.addColorStop(0, "rgba(255,255,255,0.7)");
-  baseHighlight.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = baseHighlight;
-  ctx.fillRect(mugX + 4, mugY + 12, mugWidth - 8, 12);
-
-  ctx.fillStyle = "#fdfbf7";
-  ctx.beginPath();
-  ctx.moveTo(mugX + 2, mugY + 5);
-  ctx.quadraticCurveTo(centerX, mugY - bubbleRadius * 0.15, mugX + mugWidth - 2, mugY + 5);
-  ctx.lineTo(mugX + mugWidth - 4, mugY + 14);
-  ctx.lineTo(mugX + 4, mugY + 14);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = "#fff8ec";
-  ctx.beginPath();
-  ctx.moveTo(mugX + 6, mugY + 6);
-  ctx.lineTo(mugX + mugWidth - 6, mugY + 6);
-  ctx.lineTo(mugX + mugWidth - 10, mugY + 14);
-  ctx.lineTo(mugX + 10, mugY + 14);
-  ctx.closePath();
-  ctx.fill();
-
-  // Handle
-  ctx.lineWidth = 3;
-  const handleGradient = ctx.createLinearGradient(0, mugY, 0, mugY + mugHeight);
-  handleGradient.addColorStop(0, "#fff3d3");
-  handleGradient.addColorStop(1, "#e1c199");
-  ctx.strokeStyle = handleGradient;
-  ctx.beginPath();
-  ctx.arc(mugX + mugWidth + 4, mugY + mugHeight / 2, mugHeight / 3, Math.PI * 0.5, Math.PI * 1.5);
-  ctx.stroke();
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = "rgba(255,255,255,0.6)";
-  ctx.beginPath();
-  ctx.arc(mugX + mugWidth + 8, mugY + mugHeight / 2, mugHeight / 3 - 4, Math.PI * 0.5, Math.PI * 1.5);
-  ctx.stroke();
-
-  // Rising bubbles inside beer
-  ctx.fillStyle = "rgba(255,255,255,0.7)";
-  for (let i = 0; i < 3; i++) {
-    const bx = mugX + mugWidth / 2 + (i - 1) * 4;
-    const by = mugY + mugHeight / 2 - i * 6;
-    ctx.beginPath();
-    ctx.arc(bx, by, 2, 0, Math.PI * 2);
-    ctx.fill();
+  for (let i = 0; i < starPoints * 2; i++) {
+    const angle = (Math.PI / starPoints) * i;
+    const radius = i % 2 === 0 ? starRadius : starRadius * 0.45;
+    const sx = Math.cos(angle) * radius;
+    const sy = Math.sin(angle) * radius;
+    if (i === 0) ctx.moveTo(sx, sy);
+    else ctx.lineTo(sx, sy);
   }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
 
-  // Base glass reflection
-  ctx.fillStyle = "rgba(255,255,255,0.4)";
+  // Star face
+  ctx.fillStyle = "#2c1a0a";
+  const eyeOffsetX = starRadius * 0.25;
+  const eyeY = -starRadius * 0.1;
   ctx.beginPath();
-  ctx.ellipse(0, mugY + mugHeight - bubbleRadius * 0.1, mugWidth * 0.45, 6, 0, 0, Math.PI * 2);
+  ctx.arc(-eyeOffsetX, eyeY, starRadius * 0.12, 0, Math.PI * 2);
+  ctx.arc(eyeOffsetX, eyeY, starRadius * 0.12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffeec7";
+  ctx.beginPath();
+  ctx.arc(-eyeOffsetX + starRadius * 0.03, eyeY - starRadius * 0.05, starRadius * 0.04, 0, Math.PI * 2);
+  ctx.arc(eyeOffsetX + starRadius * 0.03, eyeY - starRadius * 0.05, starRadius * 0.04, 0, Math.PI * 2);
   ctx.fill();
 
-  // Tiny sparkle drift
-  ctx.strokeStyle = "rgba(255,255,255,0.65)";
-  ctx.lineWidth = 1;
+  // Star shine
+  ctx.strokeStyle = "rgba(255,255,255,0.7)";
+  ctx.lineWidth = 1.2;
   ctx.beginPath();
-  ctx.moveTo(0, -bubbleRadius * 0.8);
-  ctx.lineTo(0, -bubbleRadius * 0.6);
+  ctx.moveTo(0, -starRadius);
+  ctx.lineTo(0, -starRadius - 6);
+  ctx.moveTo(starRadius * 0.7, -starRadius * 0.2);
+  ctx.lineTo(starRadius * 0.9, -starRadius * 0.3);
   ctx.stroke();
 
   ctx.restore();
@@ -3096,7 +6314,7 @@ function drawWinScreen() {
 
   const nextLevelIndex = currentLevel + 1;
   if (nextLevelIndex < totalLevels) {
-    const nextName = characters[levelOrder[nextLevelIndex]].name;
+    const nextName = characters[getCharacterForLevel(nextLevelIndex)].name;
     drawRetroText(`Next: ${nextName}`, canvas.width / 2, cardsY + cardHeight + 60, {
       size: 22,
       align: "center",
