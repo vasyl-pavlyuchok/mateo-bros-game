@@ -9,6 +9,22 @@ coverImage.onload = () => {
   coverImageLoaded = true;
 };
 
+const finaleVideo = document.createElement("video");
+finaleVideo.src = "video5.mp4";
+finaleVideo.loop = true;
+finaleVideo.muted = true;
+finaleVideo.playsInline = true;
+finaleVideo.preload = "auto";
+let finaleVideoReady = false;
+finaleVideo.oncanplay = () => {
+  finaleVideoReady = true;
+};
+function ensureFinaleVideoPlays() {
+  if (finaleVideoReady && finaleVideo.paused) {
+    finaleVideo.play().catch(() => {});
+  }
+}
+
 // Precomputed backdrop details so the menu art feels calm instead of random noise
 const menuBackdrop = {
   buildings: [],
@@ -158,7 +174,11 @@ const player = {
   expressionTimer: 0,
   currentExpression: "",
   celebrationTimer: 0,
+  helmetOn: false,
 };
+
+const basePlayerSpeed = player.speed;
+const basePlayerJumpStrength = player.jumpStrength;
 
 // ------ CHARACTERS (Mateo, Nick, Vas) ------
 // Color palette and small details for each brother
@@ -210,7 +230,7 @@ const characters = {
     accessoryHand: "right",
     hasGlasses: false,
     expressions: {
-      hit: "Hey!",
+      hit: "MA DAI",
     },
   },
   vas: {
@@ -233,22 +253,28 @@ const characters = {
     accessoryHand: "left",
     hasGlasses: true,
     expressions: {
-      hit: "Careful!",
+      hit: "MIERDA",
     },
   },
 };
 
 const POWER_UP_GROWTH = "growth";
 
+// Current active character (Level 1 = Mateo)
+let currentCharacter = "mateo";
+
+// ------ LEVEL MANAGEMENT ------
+const levelOrder = ["mateo", "nick", "vas", "mateo", "nick", "vas", "mateo", "nick", "vas", "mateo"];
+const totalLevels = levelOrder.length;
+let currentLevel = 0; // 0 = Mateo, 1 = Nick, 2 = Vas
+
 const gravity = 0.5;
 const groundY = 350;
 
 // ------ TILEMAP SYSTEM ------
 const tileSize = 40;
-const levelRows = 10;
-const levelCols = 80;
 
-const legacyLevelConfigs = [
+const levelConfigs = [
   {
     theme: {
       skyColor: "#87ceeb",
@@ -523,51 +549,55 @@ const legacyLevelConfigs = [
   },
   {
     theme: {
-      skyColor: "#b9e8ff",
-      groundColor: "#3b2a20",
-      groundDark: "#2a1d14",
-      groundHighlight: "#6c4f34",
+      skyColor: "#9ed8ff",
+      groundColor: "#f3cf96",
+      groundDark: "#c89c55",
+      groundHighlight: "#ffe7b4",
     },
     levelData: [
       "                                        ",
-      "        XX           XX                 ",
-      "   XX        XXXX             XX        ",
-      "             XXXX                      ",
-      "     XXXX                    XXXX      ",
-      "                        XX             ",
-      "  XXXX       XX     XXXX         XX    ",
-      "        XXX                    XXXX    ",
-      "   XX               XX                 ",
+      "        XX             XX               ",
+      "   XXX        XXXX            XX        ",
+      "                 XXX    XX              ",
+      "  XXXX    XX          XXXX        XX    ",
+      "      XXXX       XX          XXXX       ",
+      "   XX        XXX      XX                ",
+      " XXXXX   XX         XXXX     XX         ",
+      "XX   XXXXX     XX         XXXXX         ",
       "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
     ],
     questionBlocks: [
-      { x: 420, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 760, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1180, y: 170, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 420, y: 200, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 860, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1200, y: 180, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 1480, y: 140, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
     ],
     bricks: [
-      { x: 460, y: 210, width: 40, height: 40, broken: false },
-      { x: 500, y: 210, width: 40, height: 40, broken: false },
-      { x: 800, y: 190, width: 40, height: 40, broken: false },
+      { x: 460, y: 200, width: 40, height: 40, broken: false },
+      { x: 900, y: 180, width: 40, height: 40, broken: false },
+      { x: 1240, y: 180, width: 40, height: 40, broken: false },
+      { x: 1520, y: 140, width: 40, height: 40, broken: false },
     ],
     coins: [
-      { x: 160, y: 220, width: 20, height: 20, collected: false },
-      { x: 240, y: 260, width: 20, height: 20, collected: false },
-      { x: 520, y: 160, width: 20, height: 20, collected: false },
-      { x: 660, y: 200, width: 20, height: 20, collected: false },
-      { x: 880, y: 150, width: 20, height: 20, collected: false },
-      { x: 1040, y: 220, width: 20, height: 20, collected: false },
-      { x: 1240, y: 240, width: 20, height: 20, collected: false },
-      { x: 1480, y: 200, width: 20, height: 20, collected: false },
-      { x: 1360, y: 140, width: 20, height: 20, collected: false },
-      { x: 360, y: 140, width: 20, height: 20, collected: false },
-      { x: 940, y: 260, width: 20, height: 20, collected: false },
-      { x: 1680, y: 200, width: 20, height: 20, collected: false },
+      { x: 220, y: 220, width: 20, height: 20, collected: false },
+      { x: 260, y: 180, width: 20, height: 20, collected: false },
+      { x: 500, y: 180, width: 20, height: 20, collected: false },
+      { x: 640, y: 220, width: 20, height: 20, collected: false },
+      { x: 780, y: 160, width: 20, height: 20, collected: false },
+      { x: 940, y: 140, width: 20, height: 20, collected: false },
+      { x: 1010, y: 220, width: 20, height: 20, collected: false },
+      { x: 1120, y: 160, width: 20, height: 20, collected: false },
+      { x: 1320, y: 120, width: 20, height: 20, collected: false },
+      { x: 1400, y: 200, width: 20, height: 20, collected: false },
+      { x: 1550, y: 160, width: 20, height: 20, collected: false },
+      { x: 1480, y: 220, width: 20, height: 20, collected: false },
+      { x: 1580, y: 200, width: 20, height: 20, collected: false },
+      { x: 1460, y: 80, width: 20, height: 20, collected: false },
     ],
     souvenirs: [
-      { x: 300, y: 190, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 900, y: 120, type: "helm", width: 24, height: 24, collected: false },
-      { x: 1450, y: 220, type: "compass", width: 26, height: 26, collected: false },
+      { x: 260, y: 170, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 820, y: 130, type: "helm", width: 24, height: 24, collected: false },
+      { x: 1420, y: 90, type: "compass", width: 26, height: 26, collected: false },
     ],
     enemies: [
       {
@@ -576,189 +606,52 @@ const legacyLevelConfigs = [
         y: groundY - 26,
         width: 34,
         height: 26,
-        vx: 1.2,
-        speed: 1.2,
-        leftBound: 240,
+        vx: 1.4,
+        speed: 1.4,
+        leftBound: 220,
         rightBound: 520,
         platformY: groundY,
-        phaseOffset: Math.PI / 3,
+        phaseOffset: Math.PI / 5,
       },
       {
         type: "crab",
-        x: 1080,
+        x: 900,
         y: groundY - 26,
         width: 34,
         height: 26,
         vx: -1.3,
         speed: 1.3,
-        leftBound: 980,
-        rightBound: 1320,
+        leftBound: 780,
+        rightBound: 1080,
         platformY: groundY,
         phaseOffset: Math.PI,
       },
       {
-        type: "bat",
-        x: 600,
-        y: 160,
-        width: 36,
-        height: 18,
-        vx: 1.2,
-        speed: 1.2,
-        leftBound: 520,
-        rightBound: 820,
-        baseY: 170,
-        amplitude: 32,
-        phaseOffset: 0,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1360,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: -1.1,
-        speed: 1.1,
-        leftBound: 1240,
-        rightBound: 1560,
-        baseY: 160,
-        amplitude: 28,
-        phaseOffset: Math.PI / 2,
-        diveTimer: 0,
-      },
-      {
         type: "armadillo",
-        x: 760,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
+        x: 1260,
+        y: groundY - 22,
+        width: 26,
+        height: 22,
         vx: 1.0,
         speed: 1.0,
-        leftBound: 700,
-        rightBound: 980,
+        leftBound: 1120,
+        rightBound: 1480,
         platformY: groundY,
         phaseOffset: Math.PI / 4,
         rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1500,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.1,
-        speed: 1.1,
-        leftBound: 1420,
-        rightBound: 1720,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 3) / 4,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 250, width: 260, height: 100, baseColor: "#2c5f6b", shadowColor: "#1b3f47" },
-      { x: 920, width: 300, height: 120, baseColor: "#2c5f6b", shadowColor: "#1b3f47" },
-      { x: 1580, width: 280, height: 110, baseColor: "#2c5f6b", shadowColor: "#1b3f47" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 200, height: 90, baseColor: "#4ea198", shadowColor: "#2a6d68" },
-      { x: 760, width: 240, height: 110, baseColor: "#4ea198", shadowColor: "#2a6d68" },
-      { x: 1380, width: 220, height: 105, baseColor: "#4ea198", shadowColor: "#2a6d68" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.1 },
-      { x: 580, y: 60, scale: 1.4 },
-      { x: 1080, y: 80, scale: 1.0 },
-      { x: 1520, y: 65, scale: 1.2 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#7ed2ff",
-      groundColor: "#4c2f1f",
-      groundDark: "#2e1a12",
-      groundHighlight: "#8a5438",
-    },
-    levelData: [
-      "                                        ",
-      "  XX            XX                      ",
-      "              XXXX         XX          ",
-      "        XXXX                XXX        ",
-      "   XX                XX                ",
-      "            XXX                XX      ",
-      "     XXX                XXX            ",
-      "            XX      XXXX               ",
-      "  XX    XXXX        XX        XX       ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 380, y: 200, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 720, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1180, y: 160, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 420, y: 200, width: 40, height: 40, broken: false },
-      { x: 460, y: 200, width: 40, height: 40, broken: false },
-      { x: 980, y: 160, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 180, y: 240, width: 20, height: 20, collected: false },
-      { x: 260, y: 200, width: 20, height: 20, collected: false },
-      { x: 520, y: 150, width: 20, height: 20, collected: false },
-      { x: 640, y: 220, width: 20, height: 20, collected: false },
-      { x: 920, y: 140, width: 20, height: 20, collected: false },
-      { x: 1100, y: 220, width: 20, height: 20, collected: false },
-      { x: 1340, y: 200, width: 20, height: 20, collected: false },
-      { x: 1500, y: 240, width: 20, height: 20, collected: false },
-      { x: 1660, y: 200, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 780, y: 120, width: 20, height: 20, collected: false },
-      { x: 1240, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 280, y: 180, type: "helm", width: 24, height: 24, collected: false },
-      { x: 860, y: 140, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 1420, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 260,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.3,
-        speed: 1.3,
-        leftBound: 200,
-        rightBound: 500,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-      },
-      {
-        type: "crab",
-        x: 1120,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.4,
-        speed: 1.4,
-        leftBound: 1000,
-        rightBound: 1360,
-        platformY: groundY,
-        phaseOffset: Math.PI,
       },
       {
         type: "bat",
-        x: 560,
-        y: 150,
+        x: 620,
+        y: 170,
         width: 36,
         height: 18,
         vx: 1.1,
         speed: 1.1,
-        leftBound: 480,
-        rightBound: 780,
-        baseY: 160,
-        amplitude: 30,
+        leftBound: 520,
+        rightBound: 920,
+        baseY: 190,
+        amplitude: 32,
         phaseOffset: Math.PI / 3,
         diveTimer: 0,
       },
@@ -768,2942 +661,1057 @@ const legacyLevelConfigs = [
         y: 150,
         width: 36,
         height: 18,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1280,
+        rightBound: 1560,
+        baseY: 160,
+        amplitude: 28,
+        phaseOffset: Math.PI * 1.5,
+        diveTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 300, width: 280, height: 90, baseColor: "#f2dcb3", shadowColor: "#d4b986" },
+      { x: 900, width: 260, height: 80, baseColor: "#f2dcb3", shadowColor: "#d4b986" },
+      { x: 1500, width: 320, height: 95, baseColor: "#f2dcb3", shadowColor: "#d4b986" },
+    ],
+    backgroundHillsNear: [
+      { x: 450, width: 220, height: 70, baseColor: "#f4c57a", shadowColor: "#d49a4a" },
+      { x: 1100, width: 240, height: 80, baseColor: "#f4c57a", shadowColor: "#d49a4a" },
+      { x: 1650, width: 210, height: 60, baseColor: "#f4c57a", shadowColor: "#d49a4a" },
+    ],
+    backgroundClouds: [
+      { x: 220, y: 70, scale: 1.1 },
+      { x: 680, y: 60, scale: 0.9 },
+      { x: 1050, y: 80, scale: 1.3 },
+      { x: 1420, y: 65, scale: 0.75 },
+    ],
+    backgroundSea: {
+      horizonY: groundY - 130,
+      height: 160,
+      topColor: "#86d3ff",
+      bottomColor: "#1f7fb8",
+      waveColor: "rgba(255, 255, 255, 0.75)",
+      parallax: 0.12,
+      waves: [
+        { x: 60, width: 180, relY: 0.1, amplitude: 18, speed: 0.02, thickness: 4, phase: 0 },
+        { x: 320, width: 200, relY: 0.35, amplitude: 15, speed: 0.018, thickness: 3, phase: Math.PI / 3 },
+        { x: 720, width: 220, relY: 0.55, amplitude: 12, speed: 0.016, thickness: 4, phase: Math.PI * 1.5 },
+        { x: 1100, width: 190, relY: 0.25, amplitude: 14, speed: 0.019, thickness: 3, phase: Math.PI / 4 },
+      ],
+    },
+    backgroundFish: [
+      { x: 200, relY: 0.35, scale: 1.1, speed: 0.7, direction: 1, color: "#ffe066", accent: "#ffb347", wave: 6, bobSpeed: 0.03 },
+      { x: 720, relY: 0.6, scale: 0.8, speed: 0.55, direction: -1, color: "#74d2ff", accent: "#ffffff", wave: 5, bobSpeed: 0.025 },
+      { x: 1180, relY: 0.45, scale: 1.2, speed: 0.8, direction: 1, color: "#ff8fa3", accent: "#ffe6ef", wave: 7, bobSpeed: 0.028 },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#6ec3a4",
+      groundColor: "#3b4425",
+      groundDark: "#252a14",
+      groundHighlight: "#719745",
+    },
+    levelData: [
+      "                                        ",
+      "      XXX        XX         XX          ",
+      "   XX      XXX         XXX              ",
+      "         XXXX     XX         XX         ",
+      "  XXX         XX     XXX        XX      ",
+      "      XXXX         XX      XXXX         ",
+      "   XX      XXX        XXX         XX    ",
+      " XXXX   XX      XXX         XXX      XX ",
+      "XX   XXXXX   XX      XX       XXXXX     ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 360, y: 200, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 760, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1120, y: 160, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 1360, y: 160, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+    ],
+    bricks: [
+      { x: 400, y: 200, width: 40, height: 40, broken: false },
+      { x: 800, y: 180, width: 40, height: 40, broken: false },
+      { x: 1160, y: 160, width: 40, height: 40, broken: false },
+      { x: 1480, y: 160, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 220, y: 220, width: 20, height: 20, collected: false },
+      { x: 320, y: 180, width: 20, height: 20, collected: false },
+      { x: 520, y: 180, width: 20, height: 20, collected: false },
+      { x: 640, y: 150, width: 20, height: 20, collected: false },
+      { x: 780, y: 160, width: 20, height: 20, collected: false },
+      { x: 900, y: 200, width: 20, height: 20, collected: false },
+      { x: 1020, y: 160, width: 20, height: 20, collected: false },
+      { x: 1140, y: 120, width: 20, height: 20, collected: false },
+      { x: 1240, y: 140, width: 20, height: 20, collected: false },
+      { x: 1380, y: 140, width: 20, height: 20, collected: false },
+      { x: 1500, y: 200, width: 20, height: 20, collected: false },
+      { x: 1620, y: 200, width: 20, height: 20, collected: false },
+      { x: 1720, y: 160, width: 20, height: 20, collected: false },
+      { x: 1820, y: 120, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 320, y: 160, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 920, y: 120, type: "helm", width: 24, height: 24, collected: false },
+      { x: 1460, y: 130, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 420,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 340,
+        rightBound: 640,
+        platformY: groundY,
+        phaseOffset: Math.PI / 6,
+      },
+      {
+        type: "crab",
+        x: 1080,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
         vx: -1.3,
         speed: 1.3,
-        leftBound: 1260,
-        rightBound: 1600,
-        baseY: 170,
-        amplitude: 32,
-        phaseOffset: Math.PI / 1.5,
+        leftBound: 960,
+        rightBound: 1320,
+        platformY: groundY,
+        phaseOffset: (Math.PI * 3) / 4,
+      },
+      {
+        type: "bat",
+        x: 600,
+        y: 180,
+        width: 36,
+        height: 18,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 520,
+        rightBound: 840,
+        baseY: 190,
+        amplitude: 24,
+        phaseOffset: Math.PI / 2,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1340,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: -1.0,
+        speed: 1.0,
+        leftBound: 1280,
+        rightBound: 1580,
+        baseY: 160,
+        amplitude: 22,
+        phaseOffset: Math.PI,
         diveTimer: 0,
       },
       {
         type: "armadillo",
-        x: 720,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.05,
-        speed: 1.05,
-        leftBound: 680,
-        rightBound: 960,
+        x: 880,
+        y: groundY - 22,
+        width: 26,
+        height: 22,
+        vx: 1.0,
+        speed: 1.0,
+        leftBound: 760,
+        rightBound: 1040,
+        platformY: groundY,
+        phaseOffset: Math.PI / 2,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 260, width: 260, height: 110, baseColor: "#2c5e33", shadowColor: "#1d3d20" },
+      { x: 820, width: 300, height: 120, baseColor: "#2c5e33", shadowColor: "#1d3d20" },
+      { x: 1460, width: 260, height: 110, baseColor: "#2c5e33", shadowColor: "#1d3d20" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 200, height: 90, baseColor: "#4d8235", shadowColor: "#315821" },
+      { x: 720, width: 240, height: 100, baseColor: "#4d8235", shadowColor: "#315821" },
+      { x: 1320, width: 220, height: 90, baseColor: "#4d8235", shadowColor: "#315821" },
+    ],
+    backgroundClouds: [
+      { x: 200, y: 80, scale: 0.9 },
+      { x: 540, y: 70, scale: 1.1 },
+      { x: 980, y: 60, scale: 0.85 },
+      { x: 1380, y: 90, scale: 1.0 },
+    ],
+    ambientSprites: [
+      { type: "firefly", x: 200, y: 170, amplitude: 22, vx: 0.25, parallax: 0.3, color: "#ffe066" },
+      { type: "firefly", x: 560, y: 210, amplitude: 18, vx: 0.18, parallax: 0.25, color: "#fff2a8" },
+      { type: "firefly", x: 960, y: 160, amplitude: 20, vx: 0.2, parallax: 0.28, color: "#ffe6a0" },
+      { type: "firefly", x: 1420, y: 200, amplitude: 24, vx: 0.22, parallax: 0.27, color: "#ffd45c" },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#3fb9d7",
+      groundColor: "#1a3a46",
+      groundDark: "#0e252e",
+      groundHighlight: "#4ec9d5",
+    },
+    settings: {
+      gravityScale: 0.9,
+    },
+    levelData: [
+      "                                        ",
+      "     XXX       XX       XXX             ",
+      "  XX      XXX       XX       XX         ",
+      "        XXXX    XXX    XXX              ",
+      "   XXX       XX      XXX      XX        ",
+      "      XXXX         XXXX         XXX     ",
+      "  XX       XXXX          XXXX        XX ",
+      " XXX   XX        XXX   XX        XXX    ",
+      "XX  XXXXX   XX       XXX    XX    XXXX  ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 380, y: 200, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 720, y: 180, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 1020, y: 200, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 1340, y: 160, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+    ],
+    bricks: [
+      { x: 420, y: 200, width: 40, height: 40, broken: false },
+      { x: 760, y: 180, width: 40, height: 40, broken: false },
+      { x: 1060, y: 200, width: 40, height: 40, broken: false },
+      { x: 1380, y: 160, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 260, y: 220, width: 20, height: 20, collected: false },
+      { x: 320, y: 180, width: 20, height: 20, collected: false },
+      { x: 460, y: 140, width: 20, height: 20, collected: false },
+      { x: 600, y: 180, width: 20, height: 20, collected: false },
+      { x: 780, y: 140, width: 20, height: 20, collected: false },
+      { x: 880, y: 180, width: 20, height: 20, collected: false },
+      { x: 1010, y: 120, width: 20, height: 20, collected: false },
+      { x: 1160, y: 180, width: 20, height: 20, collected: false },
+      { x: 1260, y: 140, width: 20, height: 20, collected: false },
+      { x: 1400, y: 160, width: 20, height: 20, collected: false },
+      { x: 1540, y: 200, width: 20, height: 20, collected: false },
+      { x: 1660, y: 170, width: 20, height: 20, collected: false },
+      { x: 1780, y: 150, width: 20, height: 20, collected: false },
+      { x: 1880, y: 210, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 300, y: 160, type: "helm", width: 24, height: 24, collected: false },
+      { x: 860, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 1500, y: 140, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 540,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 460,
+        rightBound: 760,
+        platformY: groundY,
+        phaseOffset: 0,
+      },
+      {
+        type: "jellyfish",
+        x: 780,
+        y: 230,
+        width: 32,
+        height: 34,
+        vx: 0.6,
+        speed: 0.6,
+        leftBound: 720,
+        rightBound: 900,
+        baseY: 220,
+        amplitude: 30,
+        phaseOffset: Math.PI / 3,
+      },
+      {
+        type: "jellyfish",
+        x: 1180,
+        y: 200,
+        width: 32,
+        height: 34,
+        vx: -0.5,
+        speed: 0.5,
+        leftBound: 1080,
+        rightBound: 1300,
+        baseY: 210,
+        amplitude: 28,
+        phaseOffset: (Math.PI * 2) / 3,
+      },
+      {
+        type: "bat",
+        x: 1020,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.0,
+        speed: 1.0,
+        leftBound: 960,
+        rightBound: 1240,
+        baseY: 160,
+        amplitude: 22,
+        phaseOffset: Math.PI / 4,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1400,
+        y: groundY - 22,
+        width: 26,
+        height: 22,
+        vx: -1.1,
+        speed: 1.1,
+        leftBound: 1300,
+        rightBound: 1560,
+        platformY: groundY,
+        phaseOffset: Math.PI / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 260, width: 280, height: 90, baseColor: "#1a4b57", shadowColor: "#0d2e34" },
+      { x: 860, width: 300, height: 95, baseColor: "#1a4b57", shadowColor: "#0d2e34" },
+      { x: 1500, width: 260, height: 90, baseColor: "#1a4b57", shadowColor: "#0d2e34" },
+    ],
+    backgroundHillsNear: [
+      { x: 320, width: 220, height: 70, baseColor: "#337179", shadowColor: "#1d4e53" },
+      { x: 1020, width: 200, height: 75, baseColor: "#337179", shadowColor: "#1d4e53" },
+      { x: 1560, width: 240, height: 70, baseColor: "#337179", shadowColor: "#1d4e53" },
+    ],
+    backgroundClouds: [
+      { x: 260, y: 70, scale: 0.8 },
+      { x: 720, y: 90, scale: 0.95 },
+      { x: 1160, y: 60, scale: 0.85 },
+      { x: 1500, y: 80, scale: 0.9 },
+    ],
+    backgroundSea: {
+      horizonY: groundY - 110,
+      height: 190,
+      topColor: "#2e82a1",
+      bottomColor: "#0f2535",
+      waveColor: "rgba(255, 255, 255, 0.55)",
+      parallax: 0.08,
+      waves: [
+        { x: 80, width: 220, relY: 0.1, amplitude: 12, speed: 0.015, thickness: 4, phase: 0 },
+        { x: 420, width: 200, relY: 0.4, amplitude: 18, speed: 0.018, thickness: 3, phase: Math.PI / 2 },
+        { x: 820, width: 240, relY: 0.6, amplitude: 16, speed: 0.02, thickness: 4, phase: Math.PI },
+        { x: 1260, width: 210, relY: 0.3, amplitude: 14, speed: 0.017, thickness: 3, phase: (Math.PI * 3) / 2 },
+      ],
+    },
+    backgroundFish: [
+      { x: 120, relY: 0.25, scale: 0.9, speed: 0.6, direction: 1, color: "#f4d35e", accent: "#fff3b0", wave: 8, bobSpeed: 0.028 },
+      { x: 520, relY: 0.55, scale: 1.3, speed: 0.8, direction: -1, color: "#ff7b9c", accent: "#ffe1ec", wave: 10, bobSpeed: 0.03 },
+      { x: 960, relY: 0.4, scale: 0.95, speed: 0.65, direction: 1, color: "#9bf6ff", accent: "#e0fbfc", wave: 7, bobSpeed: 0.02 },
+      { x: 1460, relY: 0.65, scale: 1.2, speed: 0.7, direction: -1, color: "#7bdff2", accent: "#ffffff", wave: 9, bobSpeed: 0.026 },
+    ],
+    ambientSprites: [
+      { type: "spark", x: 240, y: groundY - 150, amplitude: 30, vx: 0.15, parallax: 0.2, color: "#bff3ff" },
+      { type: "spark", x: 640, y: groundY - 130, amplitude: 25, vx: 0.1, parallax: 0.22, color: "#8ef0ff" },
+      { type: "spark", x: 1080, y: groundY - 160, amplitude: 34, vx: 0.12, parallax: 0.2, color: "#c9ffef" },
+      { type: "spark", x: 1520, y: groundY - 140, amplitude: 28, vx: 0.14, parallax: 0.2, color: "#f9f871" },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#d4c6b2",
+      groundColor: "#5e4640",
+      groundDark: "#402a26",
+      groundHighlight: "#b9876b",
+    },
+    levelData: [
+      "                                        ",
+      "     XX        XXX          XX          ",
+      "  XXX   XX           XX          XXX    ",
+      "        XXXX    XX        XXX           ",
+      "   XX        XXXX    XX         XX      ",
+      "XXXX   XX          XXXXX    XX      XX  ",
+      "     XXXXX   XX          XXXX      XXX  ",
+      " XX      XXXXX     XX            XXXXX  ",
+      "XX   XX      XXX      XX    XXX      XX ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 320, y: 220, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 620, y: 200, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 980, y: 180, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 1340, y: 160, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+    ],
+    bricks: [
+      { x: 360, y: 220, width: 40, height: 40, broken: false },
+      { x: 660, y: 200, width: 40, height: 40, broken: false },
+      { x: 1020, y: 180, width: 40, height: 40, broken: false },
+      { x: 1380, y: 160, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 240, y: 240, width: 20, height: 20, collected: false },
+      { x: 300, y: 200, width: 20, height: 20, collected: false },
+      { x: 420, y: 160, width: 20, height: 20, collected: false },
+      { x: 560, y: 200, width: 20, height: 20, collected: false },
+      { x: 720, y: 160, width: 20, height: 20, collected: false },
+      { x: 860, y: 200, width: 20, height: 20, collected: false },
+      { x: 980, y: 160, width: 20, height: 20, collected: false },
+      { x: 1120, y: 140, width: 20, height: 20, collected: false },
+      { x: 1260, y: 150, width: 20, height: 20, collected: false },
+      { x: 1400, y: 180, width: 20, height: 20, collected: false },
+      { x: 1540, y: 140, width: 20, height: 20, collected: false },
+      { x: 1640, y: 200, width: 20, height: 20, collected: false },
+      { x: 1740, y: 180, width: 20, height: 20, collected: false },
+      { x: 1850, y: 220, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 280, y: 180, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 880, y: 140, type: "compass", width: 26, height: 26, collected: false },
+      { x: 1460, y: 140, type: "helm", width: 24, height: 24, collected: false },
+    ],
+    enemies: [
+      {
+        type: "armadillo",
+        x: 520,
+        y: groundY - 22,
+        width: 26,
+        height: 22,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 420,
+        rightBound: 660,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+        rollTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1180,
+        y: groundY - 22,
+        width: 26,
+        height: 22,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 1040,
+        rightBound: 1340,
         platformY: groundY,
         phaseOffset: Math.PI / 6,
         rollTimer: 0,
+      },
+      {
+        type: "crab",
+        x: 820,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.0,
+        speed: 1.0,
+        leftBound: 760,
+        rightBound: 980,
+        platformY: groundY,
+        phaseOffset: Math.PI / 5,
+      },
+      {
+        type: "bat",
+        x: 1420,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.0,
+        speed: 1.0,
+        leftBound: 1340,
+        rightBound: 1560,
+        baseY: 150,
+        amplitude: 24,
+        phaseOffset: Math.PI,
+        diveTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 260, width: 240, height: 100, baseColor: "#7b5a4f", shadowColor: "#51382f" },
+      { x: 900, width: 280, height: 110, baseColor: "#7b5a4f", shadowColor: "#51382f" },
+      { x: 1540, width: 260, height: 105, baseColor: "#7b5a4f", shadowColor: "#51382f" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 200, height: 80, baseColor: "#926b5f", shadowColor: "#644439" },
+      { x: 720, width: 240, height: 85, baseColor: "#926b5f", shadowColor: "#644439" },
+      { x: 1320, width: 220, height: 90, baseColor: "#926b5f", shadowColor: "#644439" },
+    ],
+    backgroundClouds: [
+      { x: 200, y: 70, scale: 0.8 },
+      { x: 580, y: 60, scale: 0.9 },
+      { x: 1020, y: 80, scale: 0.75 },
+      { x: 1420, y: 70, scale: 0.85 },
+    ],
+    ambientSprites: [
+      { type: "spark", x: 260, y: 200, amplitude: 18, vx: 0.1, parallax: 0.2, color: "rgba(255,230,200,0.8)" },
+      { type: "spark", x: 720, y: 210, amplitude: 16, vx: 0.08, parallax: 0.25, color: "rgba(255,205,160,0.7)" },
+      { type: "spark", x: 1180, y: 190, amplitude: 20, vx: 0.12, parallax: 0.22, color: "rgba(255,240,210,0.8)" },
+      { type: "spark", x: 1620, y: 220, amplitude: 15, vx: 0.09, parallax: 0.18, color: "rgba(255,198,150,0.75)" },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#3c0f14",
+      groundColor: "#4c1f0f",
+      groundDark: "#2b0f08",
+      groundHighlight: "#b84d2b",
+    },
+    levelData: [
+      "                                        ",
+      "        XX        XXX        XX         ",
+      "   XXX       XXX        XXX        XXX  ",
+      "      XXXX        XX        XXXX        ",
+      "  XX       XXXX        XXX        XX    ",
+      "     XXXX       XXXX        XXX        X",
+      "  XXX      XXXX      XXX        XXXXX   ",
+      " XX   XXXX      XXX       XXXX      XX  ",
+      "XX XXX    XX      XXXX      XX    XXXX  ",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 360, y: 220, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 700, y: 200, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 1060, y: 200, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 1380, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1600, y: 160, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 400, y: 220, width: 40, height: 40, broken: false },
+      { x: 740, y: 200, width: 40, height: 40, broken: false },
+      { x: 1100, y: 200, width: 40, height: 40, broken: false },
+      { x: 1420, y: 180, width: 40, height: 40, broken: false },
+      { x: 1640, y: 160, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 220, y: 220, width: 20, height: 20, collected: false },
+      { x: 320, y: 180, width: 20, height: 20, collected: false },
+      { x: 520, y: 180, width: 20, height: 20, collected: false },
+      { x: 660, y: 160, width: 20, height: 20, collected: false },
+      { x: 820, y: 140, width: 20, height: 20, collected: false },
+      { x: 940, y: 200, width: 20, height: 20, collected: false },
+      { x: 1080, y: 160, width: 20, height: 20, collected: false },
+      { x: 1200, y: 140, width: 20, height: 20, collected: false },
+      { x: 1320, y: 200, width: 20, height: 20, collected: false },
+      { x: 1440, y: 160, width: 20, height: 20, collected: false },
+      { x: 1560, y: 140, width: 20, height: 20, collected: false },
+      { x: 1680, y: 200, width: 20, height: 20, collected: false },
+      { x: 1780, y: 180, width: 20, height: 20, collected: false },
+      { x: 1880, y: 140, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 280, y: 180, type: "helm", width: 24, height: 24, collected: false },
+      { x: 960, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 1500, y: 140, type: "compass", width: 26, height: 26, collected: false },
+    ],
+    enemies: [
+      {
+        type: "armadillo",
+        x: 520,
+        y: groundY - 22,
+        width: 26,
+        height: 22,
+        vx: 1.2,
+        speed: 1.2,
+        leftBound: 420,
+        rightBound: 740,
+        platformY: groundY,
+        phaseOffset: Math.PI / 3,
+        rollTimer: 0,
+      },
+      {
+        type: "crab",
+        x: 860,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: -1.2,
+        speed: 1.2,
+        leftBound: 760,
+        rightBound: 980,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "bat",
+        x: 1180,
+        y: 160,
+        width: 36,
+        height: 18,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 1100,
+        rightBound: 1340,
+        baseY: 170,
+        amplitude: 30,
+        phaseOffset: Math.PI / 2,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1540,
+        y: 130,
+        width: 36,
+        height: 18,
+        vx: -1.0,
+        speed: 1.0,
+        leftBound: 1480,
+        rightBound: 1700,
+        baseY: 140,
+        amplitude: 26,
+        phaseOffset: Math.PI,
+        diveTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 260, width: 260, height: 120, baseColor: "#76231c", shadowColor: "#4f140f" },
+      { x: 900, width: 300, height: 125, baseColor: "#76231c", shadowColor: "#4f140f" },
+      { x: 1500, width: 260, height: 120, baseColor: "#76231c", shadowColor: "#4f140f" },
+    ],
+    backgroundHillsNear: [
+      { x: 200, width: 220, height: 90, baseColor: "#a03223", shadowColor: "#6b1d13" },
+      { x: 780, width: 240, height: 100, baseColor: "#a03223", shadowColor: "#6b1d13" },
+      { x: 1380, width: 220, height: 95, baseColor: "#a03223", shadowColor: "#6b1d13" },
+    ],
+    backgroundClouds: [
+      { x: 250, y: 70, scale: 0.7 },
+      { x: 620, y: 60, scale: 0.8 },
+      { x: 1050, y: 75, scale: 0.65 },
+      { x: 1460, y: 70, scale: 0.7 },
+    ],
+    ambientSprites: [
+      { type: "ember", x: 220, y: 40, vy: 1.2, vx: -0.2, size: 5, parallax: 0.05, color: "#ffb347" },
+      { type: "ember", x: 620, y: 60, vy: 1.4, vx: 0.1, size: 4, parallax: 0.05, color: "#ffd166" },
+      { type: "ember", x: 1040, y: 50, vy: 1.6, vx: -0.15, size: 5, parallax: 0.05, color: "#ff6b6b" },
+      { type: "ember", x: 1460, y: 70, vy: 1.5, vx: 0.08, size: 4, parallax: 0.05, color: "#ffa552" },
+      { type: "ember", x: 1800, y: 30, vy: 1.8, vx: -0.1, size: 6, parallax: 0.05, color: "#ffd166" },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#3c5a8f",
+      groundColor: "#c8d9e8",
+      groundDark: "#7f94b1",
+      groundHighlight: "#f5fbff",
+    },
+    levelData: [
+      "                                        ",
+      "   XX       XXX        XX        XXX    ",
+      "      XXX        XX        XXX         X",
+      "  XXX     XX        XXX       XX        ",
+      "     XX       XXXX       XX       XXX   ",
+      "  XXX    XX       XXX       XX      XX  ",
+      "     XXXX     XX      XXX      XXXX     ",
+      " XX      XXXX     XX       XXXX      XX ",
+      "XX   XX       XXXX     XX       XXXX   X",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 300, y: 220, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 640, y: 200, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 980, y: 200, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 1320, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1580, y: 160, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 340, y: 220, width: 40, height: 40, broken: false },
+      { x: 680, y: 200, width: 40, height: 40, broken: false },
+      { x: 1020, y: 200, width: 40, height: 40, broken: false },
+      { x: 1360, y: 180, width: 40, height: 40, broken: false },
+      { x: 1620, y: 160, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 240, y: 220, width: 20, height: 20, collected: false },
+      { x: 320, y: 180, width: 20, height: 20, collected: false },
+      { x: 460, y: 160, width: 20, height: 20, collected: false },
+      { x: 600, y: 200, width: 20, height: 20, collected: false },
+      { x: 720, y: 160, width: 20, height: 20, collected: false },
+      { x: 860, y: 200, width: 20, height: 20, collected: false },
+      { x: 980, y: 160, width: 20, height: 20, collected: false },
+      { x: 1120, y: 140, width: 20, height: 20, collected: false },
+      { x: 1260, y: 180, width: 20, height: 20, collected: false },
+      { x: 1400, y: 140, width: 20, height: 20, collected: false },
+      { x: 1540, y: 160, width: 20, height: 20, collected: false },
+      { x: 1680, y: 200, width: 20, height: 20, collected: false },
+      { x: 1800, y: 180, width: 20, height: 20, collected: false },
+      { x: 1900, y: 140, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 280, y: 180, type: "compass", width: 26, height: 26, collected: false },
+      { x: 920, y: 160, type: "helm", width: 24, height: 24, collected: false },
+      { x: 1500, y: 150, type: "anchor", width: 24, height: 24, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 460,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.0,
+        speed: 1.0,
+        leftBound: 360,
+        rightBound: 580,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "bat",
+        x: 780,
+        y: 150,
+        width: 36,
+        height: 18,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 720,
+        rightBound: 980,
+        baseY: 160,
+        amplitude: 28,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1200,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: -1.0,
+        speed: 1.0,
+        leftBound: 1140,
+        rightBound: 1340,
+        baseY: 150,
+        amplitude: 24,
+        phaseOffset: Math.PI,
+        diveTimer: 0,
+      },
+      {
+        type: "armadillo",
+        x: 1420,
+        y: groundY - 22,
+        width: 26,
+        height: 22,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 1340,
+        rightBound: 1560,
+        platformY: groundY,
+        phaseOffset: Math.PI / 5,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 260, width: 260, height: 140, baseColor: "#5d7fb3", shadowColor: "#3c5787" },
+      { x: 900, width: 300, height: 150, baseColor: "#5d7fb3", shadowColor: "#3c5787" },
+      { x: 1500, width: 280, height: 145, baseColor: "#5d7fb3", shadowColor: "#3c5787" },
+    ],
+    backgroundHillsNear: [
+      { x: 200, width: 220, height: 110, baseColor: "#8fb0d9", shadowColor: "#5a7ca9" },
+      { x: 820, width: 240, height: 120, baseColor: "#8fb0d9", shadowColor: "#5a7ca9" },
+      { x: 1420, width: 220, height: 110, baseColor: "#8fb0d9", shadowColor: "#5a7ca9" },
+    ],
+    backgroundClouds: [
+      { x: 200, y: 60, scale: 1.1 },
+      { x: 520, y: 50, scale: 1.3 },
+      { x: 980, y: 60, scale: 1.0 },
+      { x: 1400, y: 55, scale: 1.2 },
+    ],
+    ambientSprites: [
+      { type: "spark", x: 240, y: 140, amplitude: 30, vx: 0.1, parallax: 0.18, color: "#d5f1ff" },
+      { type: "spark", x: 640, y: 160, amplitude: 28, vx: 0.12, parallax: 0.2, color: "#f5f3ff" },
+      { type: "spark", x: 1080, y: 150, amplitude: 26, vx: 0.09, parallax: 0.19, color: "#d7f5ff" },
+      { type: "spark", x: 1520, y: 140, amplitude: 30, vx: 0.11, parallax: 0.18, color: "#f0e8ff" },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#050713",
+      groundColor: "#1a1f2a",
+      groundDark: "#090b12",
+      groundHighlight: "#4d5e7d",
+    },
+    settings: {
+      gravityScale: 0.65,
+      helmet: true,
+      playerSpeed: 3.2,
+      jumpStrength: 11,
+    },
+    levelData: [
+      "                                        ",
+      "     XX     XXX       XX      XXX       ",
+      "  XXX   XX      XXX        XX       XXX ",
+      "     XXX     XX      XXX       XX       ",
+      "  XX     XXXX    XX       XXX      XX   ",
+      "     XX      XXX     XXXX      XXX      ",
+      "  XXX    XX      XXX     XX      XXX    ",
+      " XX   XXX    XX      XXX     XX     XXX ",
+      "XX XXX   XX    XXX      XX    XXX   XX X",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 260, y: 200, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 640, y: 180, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 980, y: 200, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 1320, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1680, y: 160, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 300, y: 200, width: 40, height: 40, broken: false },
+      { x: 680, y: 180, width: 40, height: 40, broken: false },
+      { x: 1020, y: 200, width: 40, height: 40, broken: false },
+      { x: 1360, y: 180, width: 40, height: 40, broken: false },
+      { x: 1720, y: 160, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 200, y: 200, width: 20, height: 20, collected: false },
+      { x: 300, y: 160, width: 20, height: 20, collected: false },
+      { x: 420, y: 140, width: 20, height: 20, collected: false },
+      { x: 560, y: 160, width: 20, height: 20, collected: false },
+      { x: 720, y: 140, width: 20, height: 20, collected: false },
+      { x: 860, y: 160, width: 20, height: 20, collected: false },
+      { x: 1000, y: 120, width: 20, height: 20, collected: false },
+      { x: 1140, y: 160, width: 20, height: 20, collected: false },
+      { x: 1280, y: 140, width: 20, height: 20, collected: false },
+      { x: 1420, y: 120, width: 20, height: 20, collected: false },
+      { x: 1560, y: 160, width: 20, height: 20, collected: false },
+      { x: 1700, y: 140, width: 20, height: 20, collected: false },
+      { x: 1840, y: 180, width: 20, height: 20, collected: false },
+      { x: 1940, y: 150, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 280, y: 160, type: "anchor", width: 24, height: 24, collected: false },
+      { x: 900, y: 140, type: "compass", width: 26, height: 26, collected: false },
+      { x: 1560, y: 140, type: "helm", width: 24, height: 24, collected: false },
+    ],
+    enemies: [
+      {
+        type: "ufo",
+        x: 520,
+        y: 160,
+        width: 40,
+        height: 20,
+        vx: 1.4,
+        speed: 1.4,
+        leftBound: 420,
+        rightBound: 780,
+        baseY: 150,
+        amplitude: 18,
+        phaseOffset: Math.PI / 3,
+      },
+      {
+        type: "ufo",
+        x: 1180,
+        y: 140,
+        width: 40,
+        height: 20,
+        vx: -1.3,
+        speed: 1.3,
+        leftBound: 1080,
+        rightBound: 1400,
+        baseY: 130,
+        amplitude: 16,
+        phaseOffset: (Math.PI * 5) / 6,
+      },
+      {
+        type: "jellyfish",
+        x: 860,
+        y: 200,
+        width: 32,
+        height: 34,
+        vx: 0.8,
+        speed: 0.8,
+        leftBound: 780,
+        rightBound: 1020,
+        baseY: 190,
+        amplitude: 26,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "armadillo",
+        x: 1460,
+        y: groundY - 22,
+        width: 26,
+        height: 22,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 1380,
+        rightBound: 1680,
+        platformY: groundY,
+        phaseOffset: Math.PI / 2,
+        rollTimer: 0,
+      },
+    ],
+    backgroundHillsFar: [
+      { x: 260, width: 240, height: 80, baseColor: "#1a1f33", shadowColor: "#0c0f1a" },
+      { x: 900, width: 260, height: 85, baseColor: "#1a1f33", shadowColor: "#0c0f1a" },
+      { x: 1520, width: 240, height: 80, baseColor: "#1a1f33", shadowColor: "#0c0f1a" },
+    ],
+    backgroundHillsNear: [
+      { x: 180, width: 200, height: 60, baseColor: "#2a314b", shadowColor: "#161a28" },
+      { x: 760, width: 220, height: 65, baseColor: "#2a314b", shadowColor: "#161a28" },
+      { x: 1400, width: 210, height: 60, baseColor: "#2a314b", shadowColor: "#161a28" },
+    ],
+    backgroundClouds: [
+      { x: 200, y: 50, scale: 0.4 },
+      { x: 520, y: 70, scale: 0.35 },
+      { x: 940, y: 40, scale: 0.45 },
+      { x: 1400, y: 60, scale: 0.4 },
+    ],
+    ambientSprites: [
+      { type: "spaceship", x: 200, y: 120, vx: 0.9, amplitude: 18, parallax: 0.08, color: "#9be7ff" },
+      { type: "spaceship", x: 960, y: 100, vx: -1.1, amplitude: 22, parallax: 0.08, color: "#ffde89" },
+      { type: "meteor", x: -200, y: 40, vx: 3.5, vy: 1.2, size: 8, parallax: 0.03, color: "#ffb347" },
+      { type: "meteor", x: 400, y: -20, vx: 4.0, vy: 1.4, size: 7, parallax: 0.03, color: "#ffd166" },
+      { type: "meteor", x: 1200, y: 10, vx: 3.2, vy: 1.3, size: 9, parallax: 0.03, color: "#ff9f68" },
+    ],
+  },
+  {
+    theme: {
+      skyColor: "#160c22",
+      groundColor: "#2f1b3d",
+      groundDark: "#1a0d24",
+      groundHighlight: "#784da0",
+    },
+    settings: {
+      gravityScale: 1.05,
+    },
+    levelData: [
+      "                                        ",
+      "   XXX       XX       XXX       XX      ",
+      "      XXX        XXX       XXX       XX ",
+      "  XX      XXX        XX        XXX      ",
+      "     XXX       XXXX       XXX       XX  ",
+      "  XXX     XX       XXXX       XX     XX ",
+      "     XXXX      XXX      XXXX      XXX   ",
+      " XX      XXXX      XXX      XXXX      XX",
+      "XX   XX      XXXX      XXX      XXXX  XX",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ],
+    questionBlocks: [
+      { x: 320, y: 200, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 660, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1000, y: 200, width: 40, height: 40, used: false, reward: "coin" },
+      { x: 1340, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
+      { x: 1660, y: 160, width: 40, height: 40, used: false, reward: "coin" },
+    ],
+    bricks: [
+      { x: 360, y: 200, width: 40, height: 40, broken: false },
+      { x: 700, y: 180, width: 40, height: 40, broken: false },
+      { x: 1040, y: 200, width: 40, height: 40, broken: false },
+      { x: 1380, y: 180, width: 40, height: 40, broken: false },
+      { x: 1700, y: 160, width: 40, height: 40, broken: false },
+    ],
+    coins: [
+      { x: 220, y: 200, width: 20, height: 20, collected: false },
+      { x: 320, y: 160, width: 20, height: 20, collected: false },
+      { x: 440, y: 140, width: 20, height: 20, collected: false },
+      { x: 580, y: 160, width: 20, height: 20, collected: false },
+      { x: 720, y: 140, width: 20, height: 20, collected: false },
+      { x: 860, y: 160, width: 20, height: 20, collected: false },
+      { x: 1000, y: 140, width: 20, height: 20, collected: false },
+      { x: 1140, y: 180, width: 20, height: 20, collected: false },
+      { x: 1280, y: 140, width: 20, height: 20, collected: false },
+      { x: 1420, y: 160, width: 20, height: 20, collected: false },
+      { x: 1560, y: 140, width: 20, height: 20, collected: false },
+      { x: 1700, y: 180, width: 20, height: 20, collected: false },
+      { x: 1840, y: 140, width: 20, height: 20, collected: false },
+      { x: 1960, y: 160, width: 20, height: 20, collected: false },
+    ],
+    souvenirs: [
+      { x: 260, y: 160, type: "compass", width: 26, height: 26, collected: false },
+      { x: 940, y: 140, type: "helm", width: 24, height: 24, collected: false },
+      { x: 1560, y: 140, type: "anchor", width: 24, height: 24, collected: false },
+    ],
+    enemies: [
+      {
+        type: "crab",
+        x: 460,
+        y: groundY - 26,
+        width: 34,
+        height: 26,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 360,
+        rightBound: 580,
+        platformY: groundY,
+        phaseOffset: Math.PI / 4,
+      },
+      {
+        type: "bat",
+        x: 780,
+        y: 140,
+        width: 36,
+        height: 18,
+        vx: 1.1,
+        speed: 1.1,
+        leftBound: 720,
+        rightBound: 980,
+        baseY: 150,
+        amplitude: 26,
+        phaseOffset: Math.PI / 3,
+        diveTimer: 0,
+      },
+      {
+        type: "bat",
+        x: 1220,
+        y: 130,
+        width: 36,
+        height: 18,
+        vx: -1.0,
+        speed: 1.0,
+        leftBound: 1140,
+        rightBound: 1340,
+        baseY: 140,
+        amplitude: 24,
+        phaseOffset: Math.PI,
+        diveTimer: 0,
       },
       {
         type: "armadillo",
         x: 1480,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.2,
-        speed: 1.2,
-        leftBound: 1400,
-        rightBound: 1740,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 220, width: 280, height: 120, baseColor: "#1f4a5e", shadowColor: "#142d38" },
-      { x: 920, width: 320, height: 140, baseColor: "#1f4a5e", shadowColor: "#142d38" },
-      { x: 1580, width: 300, height: 130, baseColor: "#1f4a5e", shadowColor: "#142d38" },
-    ],
-    backgroundHillsNear: [
-      { x: 160, width: 230, height: 110, baseColor: "#3d7f8c", shadowColor: "#27535c" },
-      { x: 780, width: 260, height: 130, baseColor: "#3d7f8c", shadowColor: "#27535c" },
-      { x: 1380, width: 240, height: 125, baseColor: "#3d7f8c", shadowColor: "#27535c" },
-    ],
-    backgroundClouds: [
-      { x: 180, y: 80, scale: 1.0 },
-      { x: 520, y: 60, scale: 1.3 },
-      { x: 980, y: 90, scale: 0.9 },
-      { x: 1420, y: 75, scale: 1.2 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#1f3b56",
-      groundColor: "#2c1c1a",
-      groundDark: "#1b100f",
-      groundHighlight: "#573226",
-    },
-    levelData: [
-      "                                        ",
-      "       XX          XX                  ",
-      "   XXX       XXX           XX          ",
-      "                XX                 XX  ",
-      "      XXXX                XXXX        ",
-      "                XXXX                 ",
-      "  XXX        XX          XXX          ",
-      "        XX          XXX         XX    ",
-      "   XX         XX                XX    ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 360, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 680, y: 170, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1240, y: 190, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 1560, y: 150, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 400, y: 210, width: 40, height: 40, broken: false },
-      { x: 840, y: 190, width: 40, height: 40, broken: false },
-      { x: 880, y: 190, width: 40, height: 40, broken: false },
-      { x: 1280, y: 190, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 200, y: 240, width: 20, height: 20, collected: false },
-      { x: 280, y: 200, width: 20, height: 20, collected: false },
-      { x: 520, y: 160, width: 20, height: 20, collected: false },
-      { x: 720, y: 150, width: 20, height: 20, collected: false },
-      { x: 960, y: 210, width: 20, height: 20, collected: false },
-      { x: 1100, y: 180, width: 20, height: 20, collected: false },
-      { x: 1360, y: 230, width: 20, height: 20, collected: false },
-      { x: 1500, y: 210, width: 20, height: 20, collected: false },
-      { x: 1700, y: 240, width: 20, height: 20, collected: false },
-      { x: 1840, y: 200, width: 20, height: 20, collected: false },
-      { x: 420, y: 130, width: 20, height: 20, collected: false },
-      { x: 1340, y: 130, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 260, y: 190, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 960, y: 150, type: "helm", width: 24, height: 24, collected: false },
-      { x: 1580, y: 180, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 340,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.4,
-        speed: 1.4,
-        leftBound: 260,
-        rightBound: 560,
-        platformY: groundY,
-        phaseOffset: Math.PI / 6,
-      },
-      {
-        type: "crab",
-        x: 980,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.5,
-        speed: 1.5,
-        leftBound: 900,
-        rightBound: 1220,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 600,
-        y: 140,
-        width: 36,
-        height: 18,
+        y: groundY - 22,
+        width: 26,
+        height: 22,
         vx: 1.2,
         speed: 1.2,
-        leftBound: 520,
-        rightBound: 820,
-        baseY: 150,
-        amplitude: 34,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1400,
-        y: 130,
-        width: 36,
-        height: 18,
-        vx: -1.4,
-        speed: 1.4,
-        leftBound: 1280,
-        rightBound: 1600,
-        baseY: 150,
-        amplitude: 30,
-        phaseOffset: (Math.PI * 2) / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 720,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.1,
-        speed: 1.1,
-        leftBound: 660,
-        rightBound: 900,
+        leftBound: 1380,
+        rightBound: 1640,
         platformY: groundY,
         phaseOffset: Math.PI / 5,
         rollTimer: 0,
       },
-      {
-        type: "armadillo",
-        x: 1460,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.2,
-        speed: 1.2,
-        leftBound: 1380,
-        rightBound: 1700,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
     ],
     backgroundHillsFar: [
-      { x: 220, width: 260, height: 110, baseColor: "#132f3c", shadowColor: "#091c23" },
-      { x: 940, width: 320, height: 130, baseColor: "#132f3c", shadowColor: "#091c23" },
-      { x: 1660, width: 300, height: 120, baseColor: "#132f3c", shadowColor: "#091c23" },
+      { x: 260, width: 240, height: 90, baseColor: "#412052", shadowColor: "#2a1236" },
+      { x: 900, width: 260, height: 95, baseColor: "#412052", shadowColor: "#2a1236" },
+      { x: 1520, width: 240, height: 92, baseColor: "#412052", shadowColor: "#2a1236" },
     ],
     backgroundHillsNear: [
-      { x: 200, width: 240, height: 110, baseColor: "#225264", shadowColor: "#12303b" },
-      { x: 860, width: 270, height: 130, baseColor: "#225264", shadowColor: "#12303b" },
-      { x: 1500, width: 250, height: 120, baseColor: "#225264", shadowColor: "#12303b" },
+      { x: 180, width: 200, height: 80, baseColor: "#5f3179", shadowColor: "#3c1e4f" },
+      { x: 780, width: 220, height: 85, baseColor: "#5f3179", shadowColor: "#3c1e4f" },
+      { x: 1400, width: 210, height: 82, baseColor: "#5f3179", shadowColor: "#3c1e4f" },
     ],
     backgroundClouds: [
-      { x: 260, y: 70, scale: 0.9 },
-      { x: 580, y: 55, scale: 1.2 },
-      { x: 1080, y: 65, scale: 1.0 },
-      { x: 1520, y: 60, scale: 0.95 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#9fc4f8",
-      groundColor: "#3a2b23",
-      groundDark: "#231813",
-      groundHighlight: "#6b4a36",
-    },
-    levelData: [
-      "                                        ",
-      "       XX          XXX                  ",
-      "    XXX       XX          XX           ",
-      "                     XX                ",
-      "   XXXX                           XX   ",
-      "                 XXXX                X ",
-      "      XX    XXXX        XX            ",
-      "  XXX               XXX        XXX    ",
-      "     XX         XX                  X ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 340, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 760, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1180, y: 170, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 380, y: 210, width: 40, height: 40, broken: false },
-      { x: 420, y: 210, width: 40, height: 40, broken: false },
-      { x: 980, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 160, y: 240, width: 20, height: 20, collected: false },
-      { x: 260, y: 200, width: 20, height: 20, collected: false },
-      { x: 520, y: 150, width: 20, height: 20, collected: false },
-      { x: 660, y: 200, width: 20, height: 20, collected: false },
-      { x: 820, y: 140, width: 20, height: 20, collected: false },
-      { x: 980, y: 120, width: 20, height: 20, collected: false },
-      { x: 1120, y: 210, width: 20, height: 20, collected: false },
-      { x: 1360, y: 200, width: 20, height: 20, collected: false },
-      { x: 1580, y: 220, width: 20, height: 20, collected: false },
-      { x: 1750, y: 180, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 880, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 260, y: 190, type: "helm", width: 24, height: 24, collected: false },
-      { x: 880, y: 140, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 1480, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 280,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.2,
-        speed: 1.2,
-        leftBound: 200,
-        rightBound: 460,
-        platformY: groundY,
-        phaseOffset: Math.PI / 5,
-      },
-      {
-        type: "crab",
-        x: 1080,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.3,
-        speed: 1.3,
-        leftBound: 980,
-        rightBound: 1300,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.1,
-        speed: 1.1,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 30,
-        phaseOffset: Math.PI / 2,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1320,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: -1.2,
-        speed: 1.2,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 170,
-        amplitude: 28,
-        phaseOffset: Math.PI / 1.5,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 720,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.0,
-        speed: 1.0,
-        leftBound: 660,
-        rightBound: 920,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1500,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.1,
-        speed: 1.1,
-        leftBound: 1420,
-        rightBound: 1700,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 3) / 4,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 240, width: 260, height: 110, baseColor: "#2f5a68", shadowColor: "#1d3640" },
-      { x: 940, width: 320, height: 130, baseColor: "#2f5a68", shadowColor: "#1d3640" },
-      { x: 1620, width: 300, height: 120, baseColor: "#2f5a68", shadowColor: "#1d3640" },
-    ],
-    backgroundHillsNear: [
-      { x: 200, width: 230, height: 100, baseColor: "#4aa7a0", shadowColor: "#2e6d68" },
-      { x: 780, width: 260, height: 120, baseColor: "#4aa7a0", shadowColor: "#2e6d68" },
-      { x: 1440, width: 240, height: 115, baseColor: "#4aa7a0", shadowColor: "#2e6d68" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.1 },
-      { x: 620, y: 60, scale: 1.3 },
-      { x: 1080, y: 80, scale: 1.0 },
-      { x: 1520, y: 65, scale: 1.2 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#f6c6a8",
-      groundColor: "#4a2b1f",
-      groundDark: "#2e1a13",
-      groundHighlight: "#8c5a3c",
-    },
-    levelData: [
-      "                                        ",
-      "    XX      XX               XX         ",
-      "         XXX        XX                   ",
-      "  XX                XXXX        XX      ",
-      "           XXXX                   XX    ",
-      "     XXXX                XX            ",
-      "        XX     XXXX              XX     ",
-      "                XX      XXXX           ",
-      "   XX      XXX         XX         XX   ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 360, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 760, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1140, y: 160, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 400, y: 210, width: 40, height: 40, broken: false },
-      { x: 440, y: 210, width: 40, height: 40, broken: false },
-      { x: 900, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 200, y: 240, width: 20, height: 20, collected: false },
-      { x: 300, y: 200, width: 20, height: 20, collected: false },
-      { x: 520, y: 160, width: 20, height: 20, collected: false },
-      { x: 660, y: 190, width: 20, height: 20, collected: false },
-      { x: 840, y: 150, width: 20, height: 20, collected: false },
-      { x: 1020, y: 220, width: 20, height: 20, collected: false },
-      { x: 1220, y: 200, width: 20, height: 20, collected: false },
-      { x: 1420, y: 220, width: 20, height: 20, collected: false },
-      { x: 1560, y: 180, width: 20, height: 20, collected: false },
-      { x: 1720, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 130, width: 20, height: 20, collected: false },
-      { x: 980, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 260, y: 190, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 840, y: 140, type: "helm", width: 24, height: 24, collected: false },
-      { x: 1460, y: 200, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 300,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.3,
-        speed: 1.3,
-        leftBound: 240,
-        rightBound: 520,
-        platformY: groundY,
-        phaseOffset: Math.PI / 6,
-      },
-      {
-        type: "crab",
-        x: 1080,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.4,
-        speed: 1.4,
-        leftBound: 1000,
-        rightBound: 1320,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 540,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.1,
-        speed: 1.1,
-        leftBound: 480,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 30,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1340,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: -1.2,
-        speed: 1.2,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 170,
-        amplitude: 28,
-        phaseOffset: Math.PI / 1.5,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.05,
-        speed: 1.05,
-        leftBound: 660,
-        rightBound: 940,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1500,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.15,
-        speed: 1.15,
-        leftBound: 1420,
-        rightBound: 1720,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 200, width: 260, height: 110, baseColor: "#3c5d64", shadowColor: "#263a3f" },
-      { x: 880, width: 320, height: 130, baseColor: "#3c5d64", shadowColor: "#263a3f" },
-      { x: 1560, width: 300, height: 120, baseColor: "#3c5d64", shadowColor: "#263a3f" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 230, height: 100, baseColor: "#76a6a4", shadowColor: "#4c6c6b" },
-      { x: 760, width: 260, height: 120, baseColor: "#76a6a4", shadowColor: "#4c6c6b" },
-      { x: 1420, width: 240, height: 115, baseColor: "#76a6a4", shadowColor: "#4c6c6b" },
-    ],
-    backgroundClouds: [
-      { x: 200, y: 70, scale: 1.1 },
-      { x: 560, y: 60, scale: 1.4 },
-      { x: 1020, y: 80, scale: 1.0 },
-      { x: 1480, y: 65, scale: 1.2 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#486eec",
-      groundColor: "#2f1e2f",
-      groundDark: "#1b111c",
-      groundHighlight: "#604670",
-    },
-    levelData: [
-      "                                        ",
-      "      XX      XXX                       ",
-      "   XXX                XX                ",
-      "             XX                 XX     ",
-      "  XX                XXXX               ",
-      "        XXXX                 XX        ",
-      "     XXX       XX      XXXX            ",
-      "             XX    XX                  ",
-      "  XX     XXX         XX      XX        ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 300, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 660, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1040, y: 160, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 340, y: 210, width: 40, height: 40, broken: false },
-      { x: 380, y: 210, width: 40, height: 40, broken: false },
-      { x: 900, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 180, y: 240, width: 20, height: 20, collected: false },
-      { x: 260, y: 200, width: 20, height: 20, collected: false },
-      { x: 480, y: 160, width: 20, height: 20, collected: false },
-      { x: 620, y: 190, width: 20, height: 20, collected: false },
-      { x: 780, y: 150, width: 20, height: 20, collected: false },
-      { x: 980, y: 220, width: 20, height: 20, collected: false },
-      { x: 1180, y: 200, width: 20, height: 20, collected: false },
-      { x: 1380, y: 220, width: 20, height: 20, collected: false },
-      { x: 1520, y: 180, width: 20, height: 20, collected: false },
-      { x: 1700, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 860, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
-      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 1460, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 260,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.4,
-        speed: 1.4,
-        leftBound: 200,
-        rightBound: 460,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-      },
-      {
-        type: "crab",
-        x: 980,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.5,
-        speed: 1.5,
-        leftBound: 900,
-        rightBound: 1220,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 540,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.2,
-        speed: 1.2,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 32,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1280,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: -1.3,
-        speed: 1.3,
-        leftBound: 1180,
-        rightBound: 1480,
-        baseY: 150,
-        amplitude: 30,
-        phaseOffset: (Math.PI * 2) / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.15,
-        speed: 1.15,
-        leftBound: 640,
-        rightBound: 900,
-        platformY: groundY,
-        phaseOffset: Math.PI / 5,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1460,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.2,
-        speed: 1.2,
-        leftBound: 1380,
-        rightBound: 1700,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 3) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 180, width: 250, height: 110, baseColor: "#1a2756", shadowColor: "#0c1530" },
-      { x: 860, width: 320, height: 130, baseColor: "#1a2756", shadowColor: "#0c1530" },
-      { x: 1560, width: 300, height: 120, baseColor: "#1a2756", shadowColor: "#0c1530" },
-    ],
-    backgroundHillsNear: [
-      { x: 160, width: 230, height: 100, baseColor: "#3551a4", shadowColor: "#1f2f60" },
-      { x: 760, width: 260, height: 120, baseColor: "#3551a4", shadowColor: "#1f2f60" },
-      { x: 1440, width: 240, height: 115, baseColor: "#3551a4", shadowColor: "#1f2f60" },
-    ],
-    backgroundClouds: [
-      { x: 200, y: 80, scale: 1.0 },
-      { x: 560, y: 70, scale: 1.3 },
-      { x: 1020, y: 90, scale: 0.9 },
-      { x: 1480, y: 80, scale: 1.1 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#2f5a88",
-      groundColor: "#2b2620",
-      groundDark: "#161310",
-      groundHighlight: "#5a4a38",
-    },
-    levelData: [
-      "                                        ",
-      "    XX             XX                   ",
-      "             XXX             XX         ",
-      "  XX               XX            XX     ",
-      "        XXXX                      XX    ",
-      "                 XXXX       XX          ",
-      "   XXX      XX                    XX    ",
-      "         XX        XXX       XXXX       ",
-      " XX   XX        XX                     X",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 700, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1100, y: 160, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 360, y: 210, width: 40, height: 40, broken: false },
-      { x: 400, y: 210, width: 40, height: 40, broken: false },
-      { x: 920, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 180, y: 240, width: 20, height: 20, collected: false },
-      { x: 260, y: 200, width: 20, height: 20, collected: false },
-      { x: 520, y: 160, width: 20, height: 20, collected: false },
-      { x: 640, y: 180, width: 20, height: 20, collected: false },
-      { x: 820, y: 140, width: 20, height: 20, collected: false },
-      { x: 980, y: 120, width: 20, height: 20, collected: false },
-      { x: 1200, y: 210, width: 20, height: 20, collected: false },
-      { x: 1400, y: 200, width: 20, height: 20, collected: false },
-      { x: 1600, y: 220, width: 20, height: 20, collected: false },
-      { x: 1740, y: 180, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 920, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 260, y: 190, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 840, y: 140, type: "helm", width: 24, height: 24, collected: false },
-      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 300,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.35,
-        speed: 1.35,
-        leftBound: 220,
-        rightBound: 480,
-        platformY: groundY,
-        phaseOffset: Math.PI / 3,
-      },
-      {
-        type: "crab",
-        x: 1080,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.4,
-        speed: 1.4,
-        leftBound: 1000,
-        rightBound: 1320,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: 1.2,
-        speed: 1.2,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 150,
-        amplitude: 30,
-        phaseOffset: Math.PI / 2,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1380,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: -1.2,
-        speed: 1.2,
-        leftBound: 1280,
-        rightBound: 1520,
-        baseY: 160,
-        amplitude: 28,
-        phaseOffset: Math.PI / 1.4,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.1,
-        speed: 1.1,
-        leftBound: 660,
-        rightBound: 940,
-        platformY: groundY,
-        phaseOffset: Math.PI / 5,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1500,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.15,
-        speed: 1.15,
-        leftBound: 1420,
-        rightBound: 1720,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 200, width: 260, height: 110, baseColor: "#1f3a4a", shadowColor: "#0f2028" },
-      { x: 920, width: 320, height: 130, baseColor: "#1f3a4a", shadowColor: "#0f2028" },
-      { x: 1600, width: 300, height: 120, baseColor: "#1f3a4a", shadowColor: "#0f2028" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 230, height: 100, baseColor: "#396b72", shadowColor: "#234044" },
-      { x: 780, width: 260, height: 120, baseColor: "#396b72", shadowColor: "#234044" },
-      { x: 1460, width: 240, height: 115, baseColor: "#396b72", shadowColor: "#234044" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.0 },
-      { x: 560, y: 60, scale: 1.3 },
-      { x: 1020, y: 80, scale: 0.9 },
-      { x: 1520, y: 65, scale: 1.1 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#f7e8b0",
-      groundColor: "#573f2d",
-      groundDark: "#362519",
-      groundHighlight: "#8d694c",
-    },
-    levelData: [
-      "                                        ",
-      "        XX           XX                 ",
-      "   XX         XXXX           XX         ",
-      "             XXXX                 XX    ",
-      "   XXXX                XX              ",
-      "                   XXXX           XX   ",
-      "  XX     XX                XXXX        ",
-      "        XXX      XX                    ",
-      " XX            XXX       XX        XX  ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 720, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1200, y: 170, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 360, y: 210, width: 40, height: 40, broken: false },
-      { x: 400, y: 210, width: 40, height: 40, broken: false },
-      { x: 940, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 180, y: 240, width: 20, height: 20, collected: false },
-      { x: 260, y: 200, width: 20, height: 20, collected: false },
-      { x: 520, y: 160, width: 20, height: 20, collected: false },
-      { x: 640, y: 180, width: 20, height: 20, collected: false },
-      { x: 840, y: 150, width: 20, height: 20, collected: false },
-      { x: 1020, y: 220, width: 20, height: 20, collected: false },
-      { x: 1220, y: 200, width: 20, height: 20, collected: false },
-      { x: 1420, y: 220, width: 20, height: 20, collected: false },
-      { x: 1580, y: 180, width: 20, height: 20, collected: false },
-      { x: 1740, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 980, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
-      { x: 880, y: 140, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 1460, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 280,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.3,
-        speed: 1.3,
-        leftBound: 200,
-        rightBound: 520,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-      },
-      {
-        type: "crab",
-        x: 1080,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.4,
-        speed: 1.4,
-        leftBound: 1000,
-        rightBound: 1320,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.2,
-        speed: 1.2,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 30,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1320,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: -1.2,
-        speed: 1.2,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 170,
-        amplitude: 28,
-        phaseOffset: Math.PI / 1.5,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.1,
-        speed: 1.1,
-        leftBound: 660,
-        rightBound: 940,
-        platformY: groundY,
-        phaseOffset: Math.PI / 5,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1500,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.15,
-        speed: 1.15,
-        leftBound: 1420,
-        rightBound: 1720,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 3) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 200, width: 260, height: 110, baseColor: "#3a4b3e", shadowColor: "#1e261f" },
-      { x: 920, width: 320, height: 130, baseColor: "#3a4b3e", shadowColor: "#1e261f" },
-      { x: 1600, width: 300, height: 120, baseColor: "#3a4b3e", shadowColor: "#1e261f" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 230, height: 100, baseColor: "#6a8a5c", shadowColor: "#42553a" },
-      { x: 780, width: 260, height: 120, baseColor: "#6a8a5c", shadowColor: "#42553a" },
-      { x: 1460, width: 240, height: 115, baseColor: "#6a8a5c", shadowColor: "#42553a" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.1 },
-      { x: 560, y: 60, scale: 1.3 },
-      { x: 1020, y: 80, scale: 1.0 },
-      { x: 1520, y: 65, scale: 1.2 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#92e0ff",
-      groundColor: "#3c2e22",
-      groundDark: "#20170f",
-      groundHighlight: "#6d4f34",
-    },
-    levelData: [
-      "                                        ",
-      "   XX               XX                  ",
-      "         XXX                XX          ",
-      "  XX                   XX              ",
-      "        XXXX                      XX   ",
-      "              XXX            XX        ",
-      "   XX          XX      XX             ",
-      "       XXX                 XXX        ",
-      "  XX            XX              XX    ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 340, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 720, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1180, y: 160, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 380, y: 210, width: 40, height: 40, broken: false },
-      { x: 420, y: 210, width: 40, height: 40, broken: false },
-      { x: 940, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 180, y: 230, width: 20, height: 20, collected: false },
-      { x: 260, y: 200, width: 20, height: 20, collected: false },
-      { x: 520, y: 160, width: 20, height: 20, collected: false },
-      { x: 660, y: 190, width: 20, height: 20, collected: false },
-      { x: 820, y: 150, width: 20, height: 20, collected: false },
-      { x: 1020, y: 220, width: 20, height: 20, collected: false },
-      { x: 1220, y: 200, width: 20, height: 20, collected: false },
-      { x: 1420, y: 220, width: 20, height: 20, collected: false },
-      { x: 1580, y: 180, width: 20, height: 20, collected: false },
-      { x: 1740, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 880, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
-      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 260,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.3,
-        speed: 1.3,
-        leftBound: 200,
-        rightBound: 460,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-      },
-      {
-        type: "crab",
-        x: 980,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.4,
-        speed: 1.4,
-        leftBound: 900,
-        rightBound: 1220,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.1,
-        speed: 1.1,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 30,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1340,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: -1.2,
-        speed: 1.2,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 170,
-        amplitude: 28,
-        phaseOffset: Math.PI / 1.5,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 720,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.05,
-        speed: 1.05,
-        leftBound: 660,
-        rightBound: 920,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1460,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.15,
-        speed: 1.15,
-        leftBound: 1380,
-        rightBound: 1680,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 200, width: 260, height: 110, baseColor: "#2a5e6c", shadowColor: "#14353c" },
-      { x: 920, width: 320, height: 130, baseColor: "#2a5e6c", shadowColor: "#14353c" },
-      { x: 1620, width: 300, height: 120, baseColor: "#2a5e6c", shadowColor: "#14353c" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 230, height: 100, baseColor: "#58a1a6", shadowColor: "#316367" },
-      { x: 780, width: 260, height: 120, baseColor: "#58a1a6", shadowColor: "#316367" },
-      { x: 1440, width: 240, height: 115, baseColor: "#58a1a6", shadowColor: "#316367" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.1 },
-      { x: 600, y: 60, scale: 1.4 },
-      { x: 1060, y: 80, scale: 1.0 },
-      { x: 1500, y: 65, scale: 1.2 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#ffe3f2",
-      groundColor: "#43282c",
-      groundDark: "#231316",
-      groundHighlight: "#7c4e57",
-    },
-    levelData: [
-      "                                        ",
-      "  XX                 XX                 ",
-      "        XXX                 XX          ",
-      "                 XX               XX    ",
-      "    XXXX                 XXXX           ",
-      "            XX     XX                   ",
-      "  XX     XXXX                XX         ",
-      "        XX        XXX               XX  ",
-      " XX           XX         XX        XX  ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 660, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1040, y: 170, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 360, y: 210, width: 40, height: 40, broken: false },
-      { x: 400, y: 210, width: 40, height: 40, broken: false },
-      { x: 900, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 200, y: 230, width: 20, height: 20, collected: false },
-      { x: 280, y: 200, width: 20, height: 20, collected: false },
-      { x: 500, y: 160, width: 20, height: 20, collected: false },
-      { x: 620, y: 190, width: 20, height: 20, collected: false },
-      { x: 790, y: 150, width: 20, height: 20, collected: false },
-      { x: 960, y: 210, width: 20, height: 20, collected: false },
-      { x: 1180, y: 200, width: 20, height: 20, collected: false },
-      { x: 1380, y: 220, width: 20, height: 20, collected: false },
-      { x: 1560, y: 180, width: 20, height: 20, collected: false },
-      { x: 1700, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 860, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 240, y: 190, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 820, y: 140, type: "helm", width: 24, height: 24, collected: false },
-      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 260,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.3,
-        speed: 1.3,
-        leftBound: 200,
-        rightBound: 460,
-        platformY: groundY,
-        phaseOffset: Math.PI / 5,
-      },
-      {
-        type: "crab",
-        x: 980,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.35,
-        speed: 1.35,
-        leftBound: 900,
-        rightBound: 1220,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.15,
-        speed: 1.15,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 32,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1320,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: -1.25,
-        speed: 1.25,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 150,
-        amplitude: 28,
-        phaseOffset: (Math.PI * 2) / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.12,
-        speed: 1.12,
-        leftBound: 660,
-        rightBound: 920,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1460,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.18,
-        speed: 1.18,
-        leftBound: 1380,
-        rightBound: 1700,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 200, width: 260, height: 110, baseColor: "#6f3c49", shadowColor: "#411f28" },
-      { x: 900, width: 320, height: 130, baseColor: "#6f3c49", shadowColor: "#411f28" },
-      { x: 1600, width: 300, height: 120, baseColor: "#6f3c49", shadowColor: "#411f28" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 230, height: 100, baseColor: "#a65f7b", shadowColor: "#6d3b4f" },
-      { x: 780, width: 260, height: 120, baseColor: "#a65f7b", shadowColor: "#6d3b4f" },
-      { x: 1440, width: 240, height: 115, baseColor: "#a65f7b", shadowColor: "#6d3b4f" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.0 },
-      { x: 560, y: 60, scale: 1.3 },
-      { x: 1020, y: 80, scale: 0.9 },
-      { x: 1480, y: 70, scale: 1.1 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#caddff",
-      groundColor: "#2b2f3a",
-      groundDark: "#161820",
-      groundHighlight: "#556079",
-    },
-    levelData: [
-      "                                        ",
-      "      XX            XX                  ",
-      "   XX        XX             XX         ",
-      "               XX                XX    ",
-      "    XXXX                   XX         ",
-      "            XXXX                  XX  ",
-      "  XX                 XX         XX     ",
-      "       XX      XXX                 X   ",
-      " XX         XX        XX      XX      ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 660, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1020, y: 160, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 360, y: 210, width: 40, height: 40, broken: false },
-      { x: 400, y: 210, width: 40, height: 40, broken: false },
-      { x: 900, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 180, y: 230, width: 20, height: 20, collected: false },
-      { x: 260, y: 200, width: 20, height: 20, collected: false },
-      { x: 480, y: 160, width: 20, height: 20, collected: false },
-      { x: 600, y: 190, width: 20, height: 20, collected: false },
-      { x: 780, y: 150, width: 20, height: 20, collected: false },
-      { x: 960, y: 210, width: 20, height: 20, collected: false },
-      { x: 1180, y: 200, width: 20, height: 20, collected: false },
-      { x: 1380, y: 220, width: 20, height: 20, collected: false },
-      { x: 1540, y: 180, width: 20, height: 20, collected: false },
-      { x: 1700, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 860, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
-      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 260,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.35,
-        speed: 1.35,
-        leftBound: 200,
-        rightBound: 480,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-      },
-      {
-        type: "crab",
-        x: 980,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.4,
-        speed: 1.4,
-        leftBound: 900,
-        rightBound: 1220,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.2,
-        speed: 1.2,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 32,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1320,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: -1.25,
-        speed: 1.25,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 150,
-        amplitude: 28,
-        phaseOffset: (Math.PI * 2) / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.15,
-        speed: 1.15,
-        leftBound: 660,
-        rightBound: 940,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1460,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.2,
-        speed: 1.2,
-        leftBound: 1380,
-        rightBound: 1700,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 200, width: 260, height: 110, baseColor: "#273b63", shadowColor: "#111d35" },
-      { x: 900, width: 320, height: 130, baseColor: "#273b63", shadowColor: "#111d35" },
-      { x: 1600, width: 300, height: 120, baseColor: "#273b63", shadowColor: "#111d35" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 230, height: 100, baseColor: "#4d73c2", shadowColor: "#2a4171" },
-      { x: 780, width: 260, height: 120, baseColor: "#4d73c2", shadowColor: "#2a4171" },
-      { x: 1440, width: 240, height: 115, baseColor: "#4d73c2", shadowColor: "#2a4171" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.0 },
-      { x: 580, y: 60, scale: 1.3 },
-      { x: 1040, y: 80, scale: 0.9 },
-      { x: 1500, y: 70, scale: 1.1 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#ffebb5",
-      groundColor: "#3a291a",
-      groundDark: "#1f150d",
-      groundHighlight: "#6d4b2a",
-    },
-    levelData: [
-      "                                        ",
-      "    XX          XX                     ",
-      "            XXX         XX             ",
-      "  XX                XX          XX     ",
-      "         XXXX                      XX  ",
-      "    XXX           XX                  ",
-      "        XX     XXX        XX          ",
-      "   XX        XX     XXX               ",
-      " XX    XX          XX         XX      ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 660, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1000, y: 160, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 360, y: 210, width: 40, height: 40, broken: false },
-      { x: 400, y: 210, width: 40, height: 40, broken: false },
-      { x: 900, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 180, y: 230, width: 20, height: 20, collected: false },
-      { x: 260, y: 200, width: 20, height: 20, collected: false },
-      { x: 480, y: 160, width: 20, height: 20, collected: false },
-      { x: 600, y: 190, width: 20, height: 20, collected: false },
-      { x: 780, y: 150, width: 20, height: 20, collected: false },
-      { x: 960, y: 210, width: 20, height: 20, collected: false },
-      { x: 1180, y: 200, width: 20, height: 20, collected: false },
-      { x: 1360, y: 220, width: 20, height: 20, collected: false },
-      { x: 1520, y: 180, width: 20, height: 20, collected: false },
-      { x: 1700, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 860, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
-      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 260,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.3,
-        speed: 1.3,
-        leftBound: 200,
-        rightBound: 480,
-        platformY: groundY,
-        phaseOffset: Math.PI / 5,
-      },
-      {
-        type: "crab",
-        x: 980,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.35,
-        speed: 1.35,
-        leftBound: 900,
-        rightBound: 1220,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.2,
-        speed: 1.2,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 32,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1320,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: -1.3,
-        speed: 1.3,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 150,
-        amplitude: 28,
-        phaseOffset: (Math.PI * 2) / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.1,
-        speed: 1.1,
-        leftBound: 660,
-        rightBound: 920,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1460,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.2,
-        speed: 1.2,
-        leftBound: 1380,
-        rightBound: 1700,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 200, width: 260, height: 110, baseColor: "#4f4d34", shadowColor: "#2a291c" },
-      { x: 900, width: 320, height: 130, baseColor: "#4f4d34", shadowColor: "#2a291c" },
-      { x: 1600, width: 300, height: 120, baseColor: "#4f4d34", shadowColor: "#2a291c" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 230, height: 100, baseColor: "#7f7248", shadowColor: "#4d452c" },
-      { x: 780, width: 260, height: 120, baseColor: "#7f7248", shadowColor: "#4d452c" },
-      { x: 1440, width: 240, height: 115, baseColor: "#7f7248", shadowColor: "#4d452c" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.0 },
-      { x: 560, y: 60, scale: 1.3 },
-      { x: 1020, y: 80, scale: 0.9 },
-      { x: 1480, y: 70, scale: 1.1 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#b3ffe0",
-      groundColor: "#2a3828",
-      groundDark: "#132015",
-      groundHighlight: "#567a4f",
-    },
-    levelData: [
-      "                                        ",
-      "    XX         XX             XX        ",
-      "          XXX        XX                 ",
-      "  XX              XXX           XX      ",
-      "       XXXX                    XX       ",
-      "            XX         XX              ",
-      "   XX        XXX              XX        ",
-      "       XX          XX     XXX          ",
-      "  XX        XX          XX        XX   ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 660, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1060, y: 170, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 360, y: 210, width: 40, height: 40, broken: false },
-      { x: 400, y: 210, width: 40, height: 40, broken: false },
-      { x: 900, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 200, y: 230, width: 20, height: 20, collected: false },
-      { x: 280, y: 200, width: 20, height: 20, collected: false },
-      { x: 500, y: 160, width: 20, height: 20, collected: false },
-      { x: 640, y: 190, width: 20, height: 20, collected: false },
-      { x: 820, y: 150, width: 20, height: 20, collected: false },
-      { x: 980, y: 210, width: 20, height: 20, collected: false },
-      { x: 1180, y: 200, width: 20, height: 20, collected: false },
-      { x: 1360, y: 220, width: 20, height: 20, collected: false },
-      { x: 1540, y: 180, width: 20, height: 20, collected: false },
-      { x: 1700, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 860, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 240, y: 190, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 820, y: 140, type: "helm", width: 24, height: 24, collected: false },
-      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 260,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.25,
-        speed: 1.25,
-        leftBound: 200,
-        rightBound: 480,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-      },
-      {
-        type: "crab",
-        x: 980,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.35,
-        speed: 1.35,
-        leftBound: 900,
-        rightBound: 1220,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.1,
-        speed: 1.1,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 32,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1320,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: -1.2,
-        speed: 1.2,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 150,
-        amplitude: 28,
-        phaseOffset: (Math.PI * 2) / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.08,
-        speed: 1.08,
-        leftBound: 660,
-        rightBound: 920,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1460,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.18,
-        speed: 1.18,
-        leftBound: 1380,
-        rightBound: 1700,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 200, width: 260, height: 110, baseColor: "#2b5e43", shadowColor: "#173425" },
-      { x: 900, width: 320, height: 130, baseColor: "#2b5e43", shadowColor: "#173425" },
-      { x: 1600, width: 300, height: 120, baseColor: "#2b5e43", shadowColor: "#173425" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 230, height: 100, baseColor: "#5ca874", shadowColor: "#336245" },
-      { x: 780, width: 260, height: 120, baseColor: "#5ca874", shadowColor: "#336245" },
-      { x: 1440, width: 240, height: 115, baseColor: "#5ca874", shadowColor: "#336245" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.1 },
-      { x: 560, y: 60, scale: 1.3 },
-      { x: 1020, y: 80, scale: 0.9 },
-      { x: 1480, y: 70, scale: 1.1 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#e7d2ff",
-      groundColor: "#302033",
-      groundDark: "#180f1a",
-      groundHighlight: "#5e3e64",
-    },
-    levelData: [
-      "                                        ",
-      "     XX        XX                  XX   ",
-      "            XXX         XX              ",
-      "  XX               XX            XX     ",
-      "       XXXX                  XX         ",
-      "            XX       XXXX              ",
-      "   XX      XXX                XX        ",
-      "        XX        XX      XXX          ",
-      " XX           XX        XX        XX   ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 660, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1040, y: 170, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 360, y: 210, width: 40, height: 40, broken: false },
-      { x: 400, y: 210, width: 40, height: 40, broken: false },
-      { x: 900, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 200, y: 230, width: 20, height: 20, collected: false },
-      { x: 280, y: 200, width: 20, height: 20, collected: false },
-      { x: 520, y: 160, width: 20, height: 20, collected: false },
-      { x: 640, y: 190, width: 20, height: 20, collected: false },
-      { x: 820, y: 150, width: 20, height: 20, collected: false },
-      { x: 980, y: 220, width: 20, height: 20, collected: false },
-      { x: 1180, y: 200, width: 20, height: 20, collected: false },
-      { x: 1360, y: 220, width: 20, height: 20, collected: false },
-      { x: 1520, y: 180, width: 20, height: 20, collected: false },
-      { x: 1700, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 860, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
-      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 260,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.3,
-        speed: 1.3,
-        leftBound: 200,
-        rightBound: 480,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-      },
-      {
-        type: "crab",
-        x: 980,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.35,
-        speed: 1.35,
-        leftBound: 900,
-        rightBound: 1220,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.2,
-        speed: 1.2,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 32,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1320,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: -1.3,
-        speed: 1.3,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 150,
-        amplitude: 28,
-        phaseOffset: (Math.PI * 2) / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.12,
-        speed: 1.12,
-        leftBound: 660,
-        rightBound: 940,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1460,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.18,
-        speed: 1.18,
-        leftBound: 1380,
-        rightBound: 1700,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 200, width: 260, height: 110, baseColor: "#4b3770", shadowColor: "#2a1f40" },
-      { x: 900, width: 320, height: 130, baseColor: "#4b3770", shadowColor: "#2a1f40" },
-      { x: 1600, width: 300, height: 120, baseColor: "#4b3770", shadowColor: "#2a1f40" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 230, height: 100, baseColor: "#8754a3", shadowColor: "#553067" },
-      { x: 780, width: 260, height: 120, baseColor: "#8754a3", shadowColor: "#553067" },
-      { x: 1440, width: 240, height: 115, baseColor: "#8754a3", shadowColor: "#553067" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.0 },
-      { x: 560, y: 60, scale: 1.3 },
-      { x: 1020, y: 80, scale: 0.9 },
-      { x: 1480, y: 70, scale: 1.1 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#a9ecff",
-      groundColor: "#273237",
-      groundDark: "#12181a",
-      groundHighlight: "#4e6066",
-    },
-    levelData: [
-      "                                        ",
-      "      XX      XX                        ",
-      "   XXX              XX                  ",
-      "                XX          XX         ",
-      "  XX       XXXX                     XX ",
-      "          XX       XX                 ",
-      "   XX            XXX       XX         ",
-      "        XX    XX        XXX           ",
-      " XX          XX            XX      XX ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 660, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1040, y: 170, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 360, y: 210, width: 40, height: 40, broken: false },
-      { x: 400, y: 210, width: 40, height: 40, broken: false },
-      { x: 900, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 200, y: 230, width: 20, height: 20, collected: false },
-      { x: 280, y: 200, width: 20, height: 20, collected: false },
-      { x: 520, y: 160, width: 20, height: 20, collected: false },
-      { x: 640, y: 190, width: 20, height: 20, collected: false },
-      { x: 820, y: 150, width: 20, height: 20, collected: false },
-      { x: 980, y: 210, width: 20, height: 20, collected: false },
-      { x: 1180, y: 200, width: 20, height: 20, collected: false },
-      { x: 1360, y: 220, width: 20, height: 20, collected: false },
-      { x: 1520, y: 180, width: 20, height: 20, collected: false },
-      { x: 1700, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 860, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 240, y: 190, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 820, y: 140, type: "helm", width: 24, height: 24, collected: false },
-      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 260,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.3,
-        speed: 1.3,
-        leftBound: 200,
-        rightBound: 480,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-      },
-      {
-        type: "crab",
-        x: 980,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.35,
-        speed: 1.35,
-        leftBound: 900,
-        rightBound: 1220,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.2,
-        speed: 1.2,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 32,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1320,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: -1.3,
-        speed: 1.3,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 150,
-        amplitude: 28,
-        phaseOffset: (Math.PI * 2) / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.12,
-        speed: 1.12,
-        leftBound: 660,
-        rightBound: 940,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1460,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.18,
-        speed: 1.18,
-        leftBound: 1380,
-        rightBound: 1700,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 200, width: 260, height: 110, baseColor: "#1c3b4d", shadowColor: "#0b1f2a" },
-      { x: 900, width: 320, height: 130, baseColor: "#1c3b4d", shadowColor: "#0b1f2a" },
-      { x: 1600, width: 300, height: 120, baseColor: "#1c3b4d", shadowColor: "#0b1f2a" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 230, height: 100, baseColor: "#336d88", shadowColor: "#1c3d4c" },
-      { x: 780, width: 260, height: 120, baseColor: "#336d88", shadowColor: "#1c3d4c" },
-      { x: 1440, width: 240, height: 115, baseColor: "#336d88", shadowColor: "#1c3d4c" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.0 },
-      { x: 560, y: 60, scale: 1.3 },
-      { x: 1020, y: 80, scale: 0.9 },
-      { x: 1480, y: 70, scale: 1.1 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#ffdfa6",
-      groundColor: "#473123",
-      groundDark: "#281b11",
-      groundHighlight: "#7c543b",
-    },
-    levelData: [
-      "                                        ",
-      "        XX        XX                    ",
-      "   XX          XXX         XX          ",
-      "             XX                 XX     ",
-      "  XX                 XXXX              ",
-      "        XXXX                XX         ",
-      "   XX        XX      XXXX            X ",
-      "         XX            XX             ",
-      " XX    XX        XX          XX       ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 640, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 980, y: 170, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 360, y: 210, width: 40, height: 40, broken: false },
-      { x: 400, y: 210, width: 40, height: 40, broken: false },
-      { x: 900, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 200, y: 230, width: 20, height: 20, collected: false },
-      { x: 280, y: 200, width: 20, height: 20, collected: false },
-      { x: 520, y: 160, width: 20, height: 20, collected: false },
-      { x: 640, y: 190, width: 20, height: 20, collected: false },
-      { x: 820, y: 150, width: 20, height: 20, collected: false },
-      { x: 980, y: 210, width: 20, height: 20, collected: false },
-      { x: 1180, y: 200, width: 20, height: 20, collected: false },
-      { x: 1380, y: 220, width: 20, height: 20, collected: false },
-      { x: 1540, y: 180, width: 20, height: 20, collected: false },
-      { x: 1700, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 860, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
-      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 260,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.3,
-        speed: 1.3,
-        leftBound: 200,
-        rightBound: 480,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-      },
-      {
-        type: "crab",
-        x: 980,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.35,
-        speed: 1.35,
-        leftBound: 900,
-        rightBound: 1220,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.2,
-        speed: 1.2,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 32,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1320,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: -1.3,
-        speed: 1.3,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 150,
-        amplitude: 28,
-        phaseOffset: (Math.PI * 2) / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.12,
-        speed: 1.12,
-        leftBound: 660,
-        rightBound: 940,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1460,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.18,
-        speed: 1.18,
-        leftBound: 1380,
-        rightBound: 1700,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 200, width: 260, height: 110, baseColor: "#61512d", shadowColor: "#3a301a" },
-      { x: 900, width: 320, height: 130, baseColor: "#61512d", shadowColor: "#3a301a" },
-      { x: 1600, width: 300, height: 120, baseColor: "#61512d", shadowColor: "#3a301a" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 230, height: 100, baseColor: "#9b7c40", shadowColor: "#604f28" },
-      { x: 780, width: 260, height: 120, baseColor: "#9b7c40", shadowColor: "#604f28" },
-      { x: 1440, width: 240, height: 115, baseColor: "#9b7c40", shadowColor: "#604f28" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.0 },
-      { x: 560, y: 60, scale: 1.3 },
-      { x: 1020, y: 80, scale: 0.9 },
-      { x: 1480, y: 70, scale: 1.1 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#aee5ff",
-      groundColor: "#2d2a33",
-      groundDark: "#16141a",
-      groundHighlight: "#575165",
-    },
-    levelData: [
-      "                                        ",
-      "      XX             XX                 ",
-      "  XX         XXX              XX       ",
-      "            XX                XXXX     ",
-      "     XXXX                       XX     ",
-      "               XX     XX               ",
-      "  XX     XXX             XX           ",
-      "        XX      XX    XXX             ",
-      " XX            XX           XX     XX ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 640, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 980, y: 160, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 360, y: 210, width: 40, height: 40, broken: false },
-      { x: 400, y: 210, width: 40, height: 40, broken: false },
-      { x: 900, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 200, y: 230, width: 20, height: 20, collected: false },
-      { x: 280, y: 200, width: 20, height: 20, collected: false },
-      { x: 520, y: 160, width: 20, height: 20, collected: false },
-      { x: 640, y: 190, width: 20, height: 20, collected: false },
-      { x: 820, y: 150, width: 20, height: 20, collected: false },
-      { x: 980, y: 210, width: 20, height: 20, collected: false },
-      { x: 1180, y: 200, width: 20, height: 20, collected: false },
-      { x: 1380, y: 220, width: 20, height: 20, collected: false },
-      { x: 1540, y: 180, width: 20, height: 20, collected: false },
-      { x: 1700, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 860, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
-      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 260,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.3,
-        speed: 1.3,
-        leftBound: 200,
-        rightBound: 480,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-      },
-      {
-        type: "crab",
-        x: 980,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.35,
-        speed: 1.35,
-        leftBound: 900,
-        rightBound: 1220,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.2,
-        speed: 1.2,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 32,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1320,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: -1.3,
-        speed: 1.3,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 150,
-        amplitude: 28,
-        phaseOffset: (Math.PI * 2) / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.12,
-        speed: 1.12,
-        leftBound: 660,
-        rightBound: 940,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1460,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.18,
-        speed: 1.18,
-        leftBound: 1380,
-        rightBound: 1700,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 200, width: 260, height: 110, baseColor: "#2d3560", shadowColor: "#161c33" },
-      { x: 900, width: 320, height: 130, baseColor: "#2d3560", shadowColor: "#161c33" },
-      { x: 1600, width: 300, height: 120, baseColor: "#2d3560", shadowColor: "#161c33" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 230, height: 100, baseColor: "#5863a3", shadowColor: "#333b63" },
-      { x: 780, width: 260, height: 120, baseColor: "#5863a3", shadowColor: "#333b63" },
-      { x: 1440, width: 240, height: 115, baseColor: "#5863a3", shadowColor: "#333b63" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.0 },
-      { x: 560, y: 60, scale: 1.3 },
-      { x: 1020, y: 80, scale: 0.9 },
-      { x: 1480, y: 70, scale: 1.1 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#ffc7c2",
-      groundColor: "#352020",
-      groundDark: "#1b0f10",
-      groundHighlight: "#6c3c3c",
-    },
-    levelData: [
-      "                                        ",
-      "    XX          XX          XX          ",
-      "          XXX                XX        ",
-      "  XX                XX           XX     ",
-      "       XXXX                     XX      ",
-      "            XX        XX                ",
-      "   XX      XXX            XX           ",
-      "        XX     XX     XXX              ",
-      " XX         XX        XX       XX      ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 640, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 980, y: 170, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 360, y: 210, width: 40, height: 40, broken: false },
-      { x: 400, y: 210, width: 40, height: 40, broken: false },
-      { x: 900, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 200, y: 230, width: 20, height: 20, collected: false },
-      { x: 280, y: 200, width: 20, height: 20, collected: false },
-      { x: 520, y: 160, width: 20, height: 20, collected: false },
-      { x: 640, y: 190, width: 20, height: 20, collected: false },
-      { x: 820, y: 150, width: 20, height: 20, collected: false },
-      { x: 980, y: 210, width: 20, height: 20, collected: false },
-      { x: 1180, y: 200, width: 20, height: 20, collected: false },
-      { x: 1380, y: 220, width: 20, height: 20, collected: false },
-      { x: 1540, y: 180, width: 20, height: 20, collected: false },
-      { x: 1700, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 860, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
-      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 260,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.3,
-        speed: 1.3,
-        leftBound: 200,
-        rightBound: 480,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-      },
-      {
-        type: "crab",
-        x: 980,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.35,
-        speed: 1.35,
-        leftBound: 900,
-        rightBound: 1220,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.2,
-        speed: 1.2,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 32,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1320,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: -1.3,
-        speed: 1.3,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 150,
-        amplitude: 28,
-        phaseOffset: (Math.PI * 2) / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.12,
-        speed: 1.12,
-        leftBound: 660,
-        rightBound: 940,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1460,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.18,
-        speed: 1.18,
-        leftBound: 1380,
-        rightBound: 1700,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 200, width: 260, height: 110, baseColor: "#6a3241", shadowColor: "#3d1a24" },
-      { x: 900, width: 320, height: 130, baseColor: "#6a3241", shadowColor: "#3d1a24" },
-      { x: 1600, width: 300, height: 120, baseColor: "#6a3241", shadowColor: "#3d1a24" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 230, height: 100, baseColor: "#a7445c", shadowColor: "#6a2a38" },
-      { x: 780, width: 260, height: 120, baseColor: "#a7445c", shadowColor: "#6a2a38" },
-      { x: 1440, width: 240, height: 115, baseColor: "#a7445c", shadowColor: "#6a2a38" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.0 },
-      { x: 560, y: 60, scale: 1.3 },
-      { x: 1020, y: 80, scale: 0.9 },
-      { x: 1480, y: 70, scale: 1.1 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#8bd6ff",
-      groundColor: "#2f3028",
-      groundDark: "#171713",
-      groundHighlight: "#5b5c49",
-    },
-    levelData: [
-      "                                        ",
-      "     XX          XX            XX       ",
-      "           XXX               XX         ",
-      "  XX                XX              XX  ",
-      "       XXXX                  XX        ",
-      "                 XXXX                XX ",
-      "   XXX     XX                XXX       ",
-      "          XX      XXX                 X ",
-      " XX    XX         XX      XX          X",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 340, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 720, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1160, y: 170, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 380, y: 210, width: 40, height: 40, broken: false },
-      { x: 420, y: 210, width: 40, height: 40, broken: false },
-      { x: 940, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 200, y: 230, width: 20, height: 20, collected: false },
-      { x: 280, y: 200, width: 20, height: 20, collected: false },
-      { x: 520, y: 160, width: 20, height: 20, collected: false },
-      { x: 640, y: 190, width: 20, height: 20, collected: false },
-      { x: 800, y: 150, width: 20, height: 20, collected: false },
-      { x: 1020, y: 220, width: 20, height: 20, collected: false },
-      { x: 1220, y: 200, width: 20, height: 20, collected: false },
-      { x: 1420, y: 210, width: 20, height: 20, collected: false },
-      { x: 1600, y: 170, width: 20, height: 20, collected: false },
-      { x: 1780, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 880, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
-      { x: 860, y: 140, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 1460, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 280,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.25,
-        speed: 1.25,
-        leftBound: 200,
-        rightBound: 480,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-      },
-      {
-        type: "crab",
-        x: 1080,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.35,
-        speed: 1.35,
-        leftBound: 1000,
-        rightBound: 1320,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.1,
-        speed: 1.1,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 30,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1340,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: -1.2,
-        speed: 1.2,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 150,
-        amplitude: 28,
-        phaseOffset: Math.PI / 1.5,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.1,
-        speed: 1.1,
-        leftBound: 660,
-        rightBound: 940,
-        platformY: groundY,
-        phaseOffset: Math.PI / 5,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1500,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.2,
-        speed: 1.2,
-        leftBound: 1420,
-        rightBound: 1720,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 200, width: 260, height: 110, baseColor: "#2c4f5c", shadowColor: "#173038" },
-      { x: 920, width: 320, height: 130, baseColor: "#2c4f5c", shadowColor: "#173038" },
-      { x: 1600, width: 300, height: 120, baseColor: "#2c4f5c", shadowColor: "#173038" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 230, height: 100, baseColor: "#56a5a7", shadowColor: "#326165" },
-      { x: 780, width: 260, height: 120, baseColor: "#56a5a7", shadowColor: "#326165" },
-      { x: 1460, width: 240, height: 115, baseColor: "#56a5a7", shadowColor: "#326165" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.1 },
-      { x: 580, y: 60, scale: 1.3 },
-      { x: 1040, y: 80, scale: 1.0 },
-      { x: 1500, y: 65, scale: 1.2 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#ffd9de",
-      groundColor: "#342327",
-      groundDark: "#1b1113",
-      groundHighlight: "#5f3c42",
-    },
-    levelData: [
-      "                                        ",
-      "   XX        XX              XX         ",
-      "           XXX        XX                ",
-      "  XX               XXXX          XX     ",
-      "         XXXX                      XX   ",
-      "     XXX              XX                ",
-      "  XX        XXX               XXXX      ",
-      "         XX     XX                      ",
-      "  XX              XX       XX      XX   ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 300, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 640, y: 190, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 1000, y: 170, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 340, y: 210, width: 40, height: 40, broken: false },
-      { x: 380, y: 210, width: 40, height: 40, broken: false },
-      { x: 920, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 180, y: 240, width: 20, height: 20, collected: false },
-      { x: 260, y: 200, width: 20, height: 20, collected: false },
-      { x: 480, y: 160, width: 20, height: 20, collected: false },
-      { x: 620, y: 190, width: 20, height: 20, collected: false },
-      { x: 780, y: 150, width: 20, height: 20, collected: false },
-      { x: 960, y: 220, width: 20, height: 20, collected: false },
-      { x: 1180, y: 200, width: 20, height: 20, collected: false },
-      { x: 1380, y: 220, width: 20, height: 20, collected: false },
-      { x: 1540, y: 180, width: 20, height: 20, collected: false },
-      { x: 1720, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 860, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 240, y: 190, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 820, y: 140, type: "helm", width: 24, height: 24, collected: false },
-      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 260,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.3,
-        speed: 1.3,
-        leftBound: 200,
-        rightBound: 480,
-        platformY: groundY,
-        phaseOffset: Math.PI / 5,
-      },
-      {
-        type: "crab",
-        x: 980,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.4,
-        speed: 1.4,
-        leftBound: 900,
-        rightBound: 1220,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.2,
-        speed: 1.2,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 32,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1320,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: -1.3,
-        speed: 1.3,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 150,
-        amplitude: 28,
-        phaseOffset: (Math.PI * 2) / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.15,
-        speed: 1.15,
-        leftBound: 660,
-        rightBound: 940,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1460,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.2,
-        speed: 1.2,
-        leftBound: 1380,
-        rightBound: 1700,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 180, width: 250, height: 110, baseColor: "#6f4b4f", shadowColor: "#432b2e" },
-      { x: 860, width: 320, height: 130, baseColor: "#6f4b4f", shadowColor: "#432b2e" },
-      { x: 1560, width: 300, height: 120, baseColor: "#6f4b4f", shadowColor: "#432b2e" },
-    ],
-    backgroundHillsNear: [
-      { x: 160, width: 230, height: 100, baseColor: "#a06f7a", shadowColor: "#6d4850" },
-      { x: 760, width: 260, height: 120, baseColor: "#a06f7a", shadowColor: "#6d4850" },
-      { x: 1440, width: 240, height: 115, baseColor: "#a06f7a", shadowColor: "#6d4850" },
-    ],
-    backgroundClouds: [
-      { x: 200, y: 70, scale: 1.0 },
-      { x: 560, y: 60, scale: 1.3 },
-      { x: 1020, y: 80, scale: 0.9 },
-      { x: 1480, y: 70, scale: 1.1 },
-    ],
-  },
-  {
-    theme: {
-      skyColor: "#eaf2ff",
-      groundColor: "#2c3038",
-      groundDark: "#17191f",
-      groundHighlight: "#585d6c",
-    },
-    levelData: [
-      "                                        ",
-      "      XX          XX                    ",
-      "  XX         XX          XX            ",
-      "            XXXX                        ",
-      "     XXXX                     XX       ",
-      "                XX      XXXX           ",
-      "  XX      XXXX            XX           ",
-      "        XX          XXXX          XX   ",
-      "  XX         XX                XX      ",
-      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    ],
-    questionBlocks: [
-      { x: 320, y: 210, width: 40, height: 40, used: false, reward: "coin" },
-      { x: 660, y: 180, width: 40, height: 40, used: false, reward: POWER_UP_GROWTH },
-      { x: 980, y: 160, width: 40, height: 40, used: false, reward: "coin" },
-    ],
-    bricks: [
-      { x: 360, y: 210, width: 40, height: 40, broken: false },
-      { x: 400, y: 210, width: 40, height: 40, broken: false },
-      { x: 900, y: 170, width: 40, height: 40, broken: false },
-    ],
-    coins: [
-      { x: 180, y: 240, width: 20, height: 20, collected: false },
-      { x: 260, y: 200, width: 20, height: 20, collected: false },
-      { x: 500, y: 160, width: 20, height: 20, collected: false },
-      { x: 620, y: 190, width: 20, height: 20, collected: false },
-      { x: 820, y: 150, width: 20, height: 20, collected: false },
-      { x: 1000, y: 220, width: 20, height: 20, collected: false },
-      { x: 1180, y: 200, width: 20, height: 20, collected: false },
-      { x: 1400, y: 220, width: 20, height: 20, collected: false },
-      { x: 1600, y: 180, width: 20, height: 20, collected: false },
-      { x: 1740, y: 220, width: 20, height: 20, collected: false },
-      { x: 360, y: 120, width: 20, height: 20, collected: false },
-      { x: 860, y: 120, width: 20, height: 20, collected: false },
-    ],
-    souvenirs: [
-      { x: 240, y: 190, type: "helm", width: 24, height: 24, collected: false },
-      { x: 820, y: 140, type: "anchor", width: 24, height: 24, collected: false },
-      { x: 1440, y: 210, type: "compass", width: 26, height: 26, collected: false },
-    ],
-    enemies: [
-      {
-        type: "crab",
-        x: 260,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: 1.3,
-        speed: 1.3,
-        leftBound: 200,
-        rightBound: 480,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-      },
-      {
-        type: "crab",
-        x: 980,
-        y: groundY - 26,
-        width: 34,
-        height: 26,
-        vx: -1.35,
-        speed: 1.35,
-        leftBound: 900,
-        rightBound: 1220,
-        platformY: groundY,
-        phaseOffset: Math.PI,
-      },
-      {
-        type: "bat",
-        x: 520,
-        y: 150,
-        width: 36,
-        height: 18,
-        vx: 1.2,
-        speed: 1.2,
-        leftBound: 460,
-        rightBound: 760,
-        baseY: 160,
-        amplitude: 32,
-        phaseOffset: Math.PI / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "bat",
-        x: 1320,
-        y: 140,
-        width: 36,
-        height: 18,
-        vx: -1.3,
-        speed: 1.3,
-        leftBound: 1240,
-        rightBound: 1520,
-        baseY: 150,
-        amplitude: 28,
-        phaseOffset: (Math.PI * 2) / 3,
-        diveTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 700,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: 1.12,
-        speed: 1.12,
-        leftBound: 660,
-        rightBound: 940,
-        platformY: groundY,
-        phaseOffset: Math.PI / 4,
-        rollTimer: 0,
-      },
-      {
-        type: "armadillo",
-        x: 1460,
-        y: groundY - 24,
-        width: 30,
-        height: 24,
-        vx: -1.18,
-        speed: 1.18,
-        leftBound: 1380,
-        rightBound: 1700,
-        platformY: groundY,
-        phaseOffset: (Math.PI * 4) / 5,
-        rollTimer: 0,
-      },
-    ],
-    backgroundHillsFar: [
-      { x: 200, width: 260, height: 110, baseColor: "#5b3740", shadowColor: "#311d22" },
-      { x: 900, width: 320, height: 130, baseColor: "#5b3740", shadowColor: "#311d22" },
-      { x: 1600, width: 300, height: 120, baseColor: "#5b3740", shadowColor: "#311d22" },
-    ],
-    backgroundHillsNear: [
-      { x: 180, width: 230, height: 100, baseColor: "#a4525d", shadowColor: "#642d34" },
-      { x: 780, width: 260, height: 120, baseColor: "#a4525d", shadowColor: "#642d34" },
-      { x: 1440, width: 240, height: 115, baseColor: "#a4525d", shadowColor: "#642d34" },
-    ],
-    backgroundClouds: [
-      { x: 220, y: 70, scale: 1.0 },
-      { x: 560, y: 60, scale: 1.3 },
-      { x: 1020, y: 80, scale: 0.9 },
-      { x: 1480, y: 70, scale: 1.1 },
+      { x: 220, y: 70, scale: 0.7 },
+      { x: 620, y: 80, scale: 0.6 },
+      { x: 1040, y: 70, scale: 0.65 },
+      { x: 1460, y: 80, scale: 0.6 },
+    ],
+    ambientSprites: [
+      { type: "spark", x: 200, y: 160, amplitude: 28, vx: 0.1, parallax: 0.2, color: "#d8b4ff" },
+      { type: "spark", x: 640, y: 150, amplitude: 26, vx: 0.08, parallax: 0.18, color: "#f3d1ff" },
+      { type: "spark", x: 1080, y: 160, amplitude: 24, vx: 0.09, parallax: 0.2, color: "#bff6ff" },
+      { type: "spark", x: 1520, y: 150, amplitude: 28, vx: 0.11, parallax: 0.18, color: "#ffe29a" },
     ],
   },
 ];
-
-// ------ LEVEL MANAGEMENT ------
-const levelOrder = ["mateo", "nick", "vas"];
-function getCharacterForLevel(index) {
-  return levelOrder[index % levelOrder.length];
-}
-const totalLevels = levelConfigs.length;
-let currentLevel = 0;
-let currentCharacter = getCharacterForLevel(currentLevel);
 
 let levelData = [];
 let questionBlocks = [];
@@ -3714,8 +1722,13 @@ let enemies = [];
 let backgroundHillsFar = [];
 let backgroundHillsNear = [];
 let backgroundClouds = [];
+let backgroundSea = null;
+let backgroundFish = [];
+let ambientSprites = [];
 let currentTheme = { skyColor: "#87ceeb", groundColor: "#6b3a1e" };
 let souvenirPopupTimer = 0;
+let currentLevelSettings = { gravityScale: 1, helmet: false };
+let currentGravity = gravity;
 
 function buildPlatformsFromTiles() {
   const platforms = [];
@@ -3762,61 +1775,64 @@ function cloneEntities(list) {
   return list.map((item) => ({ ...item }));
 }
 
+function clampEntitiesBeforeFlag(list, flagX, margin = 10) {
+  const cutoff = flagX - margin;
+  return list.filter((entity) => {
+    const width = entity.width || 0;
+    return (entity.x || 0) + width <= cutoff;
+  });
+}
+
+function clampPlatformsBeforeFlag(platformList, flagX) {
+  const thresholdY = groundY - tileSize;
+  return platformList
+    .map((platform) => {
+      if (platform.y >= thresholdY) return platform; // leave ground segments intact
+      const start = platform.x;
+      const end = platform.x + platform.width;
+      if (start >= flagX) return null;
+      if (end > flagX) {
+        return { ...platform, width: Math.max(flagX - start, 0) };
+      }
+      return platform;
+    })
+    .filter(Boolean);
+}
+
+function resolveAmbientY(sprite) {
+  if (typeof sprite.relY === "number") {
+    if (backgroundSea) {
+      const horizon = backgroundSea.horizonY ?? groundY - 120;
+      const height = backgroundSea.height ?? 140;
+      return horizon + height * sprite.relY;
+    }
+    return groundY * sprite.relY;
+  }
+  if (sprite.y != null) return sprite.y;
+  return backgroundSea ? (backgroundSea.horizonY ?? groundY - 100) + 20 : groundY * 0.4;
+}
+
+function cloneAmbientSprites(list) {
+  return list.map((sprite) => {
+    const y = resolveAmbientY(sprite);
+    return {
+      ...sprite,
+      x: sprite.x ?? 0,
+      y,
+      baseY: sprite.baseY ?? y,
+      parallax: sprite.parallax ?? 0.2,
+      phase: sprite.phase ?? Math.random() * Math.PI * 2,
+      direction: sprite.direction ?? (sprite.vx && sprite.vx < 0 ? -1 : 1),
+    };
+  });
+}
+
 function recomputeWorldWidth() {
   let maxRowLength = 0;
   for (const row of levelData) {
     if (row.length > maxRowLength) maxRowLength = row.length;
   }
   worldWidth = maxRowLength * tileSize;
-}
-
-function enforceFlagSafeZone() {
-  const flagSafeX = Math.max(200, worldWidth - 160);
-  const minRange = 40;
-
-  enemies.forEach((enemy) => {
-    if (typeof enemy.rightBound === "number") {
-      enemy.rightBound = Math.min(enemy.rightBound, flagSafeX);
-    }
-
-    if (typeof enemy.leftBound === "number") {
-      const targetRange = Math.max(minRange, enemy.width || 0);
-      if (typeof enemy.rightBound === "number") {
-        if (enemy.rightBound - enemy.leftBound < targetRange) {
-          enemy.leftBound = Math.max(0, enemy.rightBound - targetRange);
-        } else {
-          enemy.leftBound = Math.max(0, Math.min(enemy.leftBound, enemy.rightBound - targetRange));
-        }
-      } else {
-        enemy.leftBound = Math.max(0, enemy.leftBound);
-      }
-    }
-
-    if (typeof enemy.rightBound === "number" && enemy.x + enemy.width > enemy.rightBound) {
-      enemy.x = enemy.rightBound - enemy.width;
-    }
-    if (typeof enemy.leftBound === "number" && enemy.x < enemy.leftBound) {
-      enemy.x = enemy.leftBound;
-    }
-
-    if (enemy.type === "armadillo" && typeof enemy.rightBound === "number") {
-      const extraBuffer = 120;
-      const desiredRange = Math.max(160, enemy.width * 3 || 120);
-      if (enemy.rightBound > flagSafeX - extraBuffer) {
-        const newRight = Math.max(0, Math.min(flagSafeX - extraBuffer, enemy.rightBound));
-        const newLeft = Math.max(0, newRight - desiredRange);
-        enemy.rightBound = newRight;
-        enemy.leftBound = newLeft;
-        enemy.x = Math.max(newLeft, Math.min(enemy.x, newRight - (enemy.width || 0)));
-      } else if (
-        typeof enemy.leftBound === "number" &&
-        enemy.rightBound - enemy.leftBound < desiredRange
-      ) {
-        enemy.leftBound = Math.max(0, enemy.rightBound - desiredRange);
-        enemy.x = Math.max(enemy.leftBound, Math.min(enemy.x, enemy.rightBound - (enemy.width || 0)));
-      }
-    }
-  });
 }
 
 function loadLevelConfig(index) {
@@ -3826,14 +1842,45 @@ function loadLevelConfig(index) {
   bricks = cloneEntities(config.bricks);
   coins = cloneEntities(config.coins);
   souvenirs = cloneEntities(config.souvenirs);
-  enemies = cloneEntities(config.enemies).map((enemy) => ({ ...enemy, dead: false }));
+  enemies = cloneEntities(config.enemies).map((enemy) => ({
+    ...enemy,
+    dead: false,
+    defeated: false,
+    fallDelay: 0,
+    vy: enemy.vy || 0,
+    squishAmount: 0,
+  }));
   backgroundHillsFar = cloneEntities(config.backgroundHillsFar);
   backgroundHillsNear = cloneEntities(config.backgroundHillsNear);
   backgroundClouds = cloneEntities(config.backgroundClouds);
+  backgroundSea = config.backgroundSea ? { ...config.backgroundSea } : null;
+  if (backgroundSea && !backgroundSea.waves) backgroundSea.waves = [];
+  backgroundFish = cloneEntities(config.backgroundFish || []).map((fish) => ({
+    ...fish,
+    bobPhase: fish.bobPhase || 0,
+  }));
+  ambientSprites = cloneAmbientSprites(config.ambientSprites || []);
+  const settings = config.settings || {};
+  currentLevelSettings = {
+    gravityScale: settings.gravityScale ?? 1,
+    helmet: !!settings.helmet,
+    playerSpeed: settings.playerSpeed ?? basePlayerSpeed,
+    jumpStrength: settings.jumpStrength ?? basePlayerJumpStrength,
+  };
+  currentGravity = gravity * currentLevelSettings.gravityScale;
+  player.speed = currentLevelSettings.playerSpeed;
+  player.jumpStrength = currentLevelSettings.jumpStrength;
+  player.helmetOn = currentLevelSettings.helmet;
   currentTheme = { ...config.theme };
   platforms = buildPlatformsFromTiles();
   recomputeWorldWidth();
-  enforceFlagSafeZone();
+  const flagX = worldWidth - 100;
+  questionBlocks = clampEntitiesBeforeFlag(questionBlocks, flagX);
+  bricks = clampEntitiesBeforeFlag(bricks, flagX);
+  coins = clampEntitiesBeforeFlag(coins, flagX);
+  souvenirs = clampEntitiesBeforeFlag(souvenirs, flagX);
+  enemies = clampEntitiesBeforeFlag(enemies, flagX);
+  platforms = clampPlatformsBeforeFlag(platforms, flagX);
   souvenirPopupTimer = 0;
 }
 
@@ -3993,6 +2040,61 @@ function updateMovingPlatforms() {
   // No moving platforms currently
 }
 
+function updateBackgroundFish() {
+  if (!backgroundFish.length) return;
+  const minX = -300;
+  const maxX = worldWidth + 300;
+  for (const fish of backgroundFish) {
+    const dir = fish.direction || 1;
+    const speed = fish.speed || 0.5;
+    fish.x = (fish.x ?? 0) + speed * dir;
+    if (dir >= 0 && fish.x > maxX) {
+      fish.x = minX;
+    } else if (dir < 0 && fish.x < minX) {
+      fish.x = maxX;
+    }
+    fish.bobPhase = (fish.bobPhase || 0) + (fish.bobSpeed || 0.02);
+  }
+}
+
+function updateAmbientSprites() {
+  if (!ambientSprites.length) return;
+  const minX = -400;
+  const maxX = worldWidth + 400;
+  for (const sprite of ambientSprites) {
+    const type = sprite.type || "spark";
+    sprite.phase = (sprite.phase || 0) + (sprite.phaseSpeed || 0.02);
+    if (type === "firefly" || type === "spark") {
+      const amplitude = sprite.amplitude ?? 20;
+      sprite.y = (sprite.baseY ?? sprite.y) + Math.sin(sprite.phase) * amplitude;
+      const travel = (sprite.vx ?? 0.2) * (sprite.direction || 1);
+      sprite.x += travel;
+      if (sprite.x > maxX) sprite.x = minX;
+      if (sprite.x < minX) sprite.x = maxX;
+    } else if (type === "ember") {
+      sprite.y += sprite.vy ?? 1.4;
+      sprite.x += sprite.vx ?? 0;
+      if (sprite.y > groundY + 40) {
+        const resetY = (backgroundSea ? (backgroundSea.horizonY ?? groundY - 120) : 0) - Math.random() * 80;
+        sprite.y = resetY;
+        sprite.x = Math.random() * (worldWidth + 200) - 100;
+      }
+    } else if (type === "meteor") {
+      sprite.x += sprite.vx ?? 3.4;
+      sprite.y += sprite.vy ?? 1.4;
+      if (sprite.x > maxX || sprite.y > groundY + 200) {
+        sprite.x = -200 - Math.random() * 200;
+        sprite.y = Math.random() * 80;
+      }
+    } else if (type === "spaceship") {
+      sprite.x += sprite.vx ?? 1.0;
+      sprite.y = (sprite.baseY ?? sprite.y) + Math.sin(sprite.phase) * (sprite.amplitude ?? 15);
+      if (sprite.x > maxX) sprite.x = minX;
+      if (sprite.x < minX) sprite.x = maxX;
+    }
+  }
+}
+
 
 const enemyDesigns = {
   crab: {
@@ -4015,13 +2117,25 @@ const enemyDesigns = {
     face: "#d9c5a1",
     eye: "#2b1b12",
   },
+  jellyfish: {
+    bell: "#bde0fe",
+    glow: "#79bff7",
+    tentacle: "#fdfefe",
+    eye: "#203044",
+  },
+  ufo: {
+    hull: "#d0d9ff",
+    dome: "#9be7ff",
+    light: "#ffef5f",
+    trim: "#7f8cba",
+  },
   default: {
     body: "#8B0000",
   },
 };
 
 // ------ GROWTH POWER-UPS ------
-const maxGrowthPowerUps = 1;
+const maxGrowthPowerUps = 2;
 const initialGrowthPowerUps = [
   {
     x: 300,
@@ -4142,7 +2256,7 @@ function resetGame() {
   // Complete reset for a brand new run
   respawnPlayer();
   makePlayerSmall();
-  currentCharacter = getCharacterForLevel(currentLevel);
+  currentCharacter = levelOrder[currentLevel];
   loadLevelConfig(currentLevel);
 
   // Reset score
@@ -4190,14 +2304,18 @@ function update() {
     if (player.expressionTimer === 0) player.currentExpression = "";
   }
 
+  updateBackgroundFish();
+  updateAmbientSprites();
+
   const prevY = player.y; // used to detect head bumps
+  const prevBottom = prevY + player.height;
 
   if (player.respawnAnimating) {
     player.respawnFrame++;
     if (respawnPauseTimer < 30) {
       respawnPauseTimer++;
     } else {
-      player.vy += gravity * 1.5;
+      player.vy += currentGravity * 1.5;
       player.y += player.vy;
       if (player.y > canvas.height + 100) {
         if (player.fallTriggersGameOver) {
@@ -4230,7 +2348,7 @@ function update() {
   }
 
   // Gravity
-  player.vy += gravity;
+  player.vy += currentGravity;
 
   // Apply velocity
   player.x += player.vx;
@@ -4421,10 +2539,44 @@ function update() {
   }
 
   // ----- ENEMY MOVEMENT -----
+  const defeatedGravity = 0.65;
   for (const enemy of enemies) {
     if (enemy.dead) continue;
 
+    if (enemy.defeated) {
+      enemy.vx = 0;
+      enemy.squishAmount = Math.min(0.55, (enemy.squishAmount || 0.35) + 0.03);
+      if (enemy.fallDelay && enemy.fallDelay > 0) {
+        enemy.fallDelay--;
+      } else {
+        enemy.vy = (enemy.vy || 0) + defeatedGravity;
+        enemy.y += enemy.vy;
+        if (enemy.y > canvas.height + enemy.height) {
+          enemy.dead = true;
+        }
+      }
+      continue;
+    } else if (enemy.squishAmount) {
+      enemy.squishAmount = Math.max(0, enemy.squishAmount - 0.08);
+    }
+
     const baseSpeed = enemy.speed || Math.abs(enemy.vx) || 1;
+    if (enemy.type === "jellyfish") {
+      const drift = enemy.vx || baseSpeed * 0.6;
+      enemy.x += drift;
+      if (enemy.leftBound != null && enemy.x <= enemy.leftBound) {
+        enemy.x = enemy.leftBound;
+        enemy.vx = Math.abs(drift);
+      } else if (enemy.rightBound != null && enemy.x + enemy.width >= enemy.rightBound) {
+        enemy.x = (enemy.rightBound || enemy.x + enemy.width) - enemy.width;
+        enemy.vx = -Math.abs(drift);
+      }
+      const baseY = enemy.baseY ?? enemy.y;
+      const amplitude = enemy.amplitude ?? 28;
+      enemy.y = baseY + Math.sin(animationFrame * 0.08 + (enemy.phaseOffset || 0)) * amplitude;
+      continue;
+    }
+
     if (enemy.type === "bat") {
       const dir = enemy.vx >= 0 ? 1 : -1;
       enemy.vx = (dir === 0 ? 1 : dir) * baseSpeed;
@@ -4456,6 +2608,23 @@ function update() {
         }
       }
       enemy.y = waveY;
+      continue;
+    }
+
+    if (enemy.type === "ufo") {
+      const dir = enemy.vx >= 0 ? 1 : -1;
+      enemy.vx = (dir === 0 ? 1 : dir) * baseSpeed;
+      enemy.x += enemy.vx;
+      if (enemy.x <= enemy.leftBound) {
+        enemy.x = enemy.leftBound;
+        enemy.vx = Math.abs(enemy.vx);
+      } else if (enemy.x + enemy.width >= enemy.rightBound) {
+        enemy.x = enemy.rightBound - enemy.width;
+        enemy.vx = -Math.abs(enemy.vx);
+      }
+      const baseY = enemy.baseY ?? enemy.y;
+      const amplitude = enemy.amplitude ?? 18;
+      enemy.y = baseY + Math.sin(animationFrame * 0.1 + (enemy.phaseOffset || 0)) * amplitude;
       continue;
     }
 
@@ -4496,7 +2665,7 @@ function update() {
 
   // ----- PLAYER–ENEMY COLLISION -----
   for (const enemy of enemies) {
-    if (enemy.dead) continue;
+    if (enemy.dead || enemy.defeated) continue;
 
     const playerLeft = player.x;
     const playerRight = player.x + player.width;
@@ -4516,21 +2685,27 @@ function update() {
 
     if (!overlap) continue;
 
-    const stompMargin = 10;
+    const velocityBonus = Math.min(Math.abs(player.vy) * 1.8, 20);
+    const baseMargin = Math.max(14, enemy.height * 0.45);
+    const stompMargin = baseMargin + velocityBonus;
     const isFalling = player.vy > 0;
-    const playerPrevBottom = prevY + player.height;
-    const descendingThroughTop =
-      playerPrevBottom <= enemyTop + stompMargin &&
-      playerBottom >= enemyTop + 1;
-    const hitFromAbove =
-      isFalling && descendingThroughTop && playerTop < enemyTop + enemy.height * 0.6;
+    const playerCenterX = playerLeft + player.width / 2;
+    const centerAligned =
+      playerCenterX > enemyLeft - 6 && playerCenterX < enemyRight + 6;
+    const wasAbove = prevBottom <= enemyTop + stompMargin;
+    const nowAbove = playerBottom <= enemyTop + stompMargin;
+    const hitFromAbove = isFalling && centerAligned && (nowAbove || wasAbove);
 
     const stompImmune = enemy.type === "armadillo";
-    const airborneEnemy = enemy.type === "bat";
+    const airborneEnemy =
+      enemy.type === "bat" || enemy.type === "jellyfish" || enemy.type === "ufo";
 
     if (hitFromAbove && !stompImmune) {
       // Stomp enemy with type-specific reward
-      enemy.dead = true;
+      enemy.defeated = true;
+      enemy.fallDelay = enemy.type === "bat" ? 6 : 12;
+      enemy.vy = 0;
+      enemy.squishAmount = Math.max(enemy.squishAmount || 0, airborneEnemy ? 0.3 : 0.45);
       stompCombo = Math.min(stompCombo + 1, 10);
       comboTimer = comboTimeout;
       const comboBonus = stompCombo > 1 ? stompCombo * 5 : 0;
@@ -4562,7 +2737,6 @@ function update() {
           color: burstColor,
         });
       }
-      player.y = enemyTop - player.height;
       continue;
     }
 
@@ -5225,6 +3399,24 @@ function drawPlayer() {
     ctx.fillRect(torsoX, torsoTop - unit * 0.2, bodyWidth, unit * 0.5);
   }
 
+  if (player.helmetOn) {
+    ctx.save();
+    const visorRadius = faceWidth * 0.8;
+    const visorCenterY = faceTop + faceHeight * 0.5;
+    ctx.strokeStyle = "rgba(173,216,255,0.8)";
+    ctx.lineWidth = unit * 0.5;
+    ctx.beginPath();
+    ctx.arc(centerX, visorCenterY, visorRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(120,180,255,0.15)";
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
+    ctx.beginPath();
+    ctx.arc(centerX - visorRadius * 0.4, visorCenterY - visorRadius * 0.3, visorRadius * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   ctx.restore();
 }
 
@@ -5237,6 +3429,18 @@ function drawEnemySprite(enemy) {
   const h = enemy.height;
   const phase =
     animationFrame * 0.15 + (enemy.phaseOffset ? enemy.phaseOffset : 0);
+  const squishAmount = Math.max(enemy.squishAmount || 0, 0);
+
+  ctx.save();
+  if (squishAmount > 0) {
+    const anchorX = screenX + w / 2;
+    const anchorY = screenY + h;
+    const scaleX = 1 + squishAmount * 0.4;
+    const scaleY = Math.max(0.3, 1 - squishAmount);
+    ctx.translate(anchorX, anchorY);
+    ctx.scale(scaleX, scaleY);
+    ctx.translate(-anchorX, -anchorY);
+  }
 
   if (enemy.type === "crab") {
     const unit = h / 8;
@@ -5328,6 +3532,7 @@ function drawEnemySprite(enemy) {
       );
       ctx.fill();
     }
+    ctx.restore();
     return;
   }
 
@@ -5396,141 +3601,173 @@ function drawEnemySprite(enemy) {
     ctx.moveTo(centerX - unit * 0.15, centerY - unit * 0.6);
     ctx.lineTo(centerX + unit * 0.25, centerY - unit * 0.6);
     ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  if (enemy.type === "jellyfish") {
+    const unit = h / 6;
+    const centerX = screenX + w / 2;
+    const centerY = screenY + h / 2;
+    const bob = Math.sin(phase * 1.5) * unit * 0.3;
+    ctx.fillStyle = design.glow;
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY + bob, w / 2, h / 2.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = design.bell;
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY - unit * 0.4 + bob, w / 2, h / 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY - unit * 0.6 + bob, w / 2.3, h / 3.2, 0, 0, Math.PI);
+    ctx.stroke();
+    ctx.strokeStyle = design.tentacle;
+    ctx.lineWidth = 1.5;
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.moveTo(centerX + i * unit * 0.8, screenY + h - unit * 1.2);
+      ctx.quadraticCurveTo(
+        centerX + i * unit * 1.2,
+        screenY + h - unit * 0.2,
+        centerX + i * unit * 0.6,
+        screenY + h + unit * 0.4
+      );
+      ctx.stroke();
+    }
+    ctx.fillStyle = design.eye;
+    ctx.beginPath();
+    ctx.arc(centerX - unit * 0.4, centerY - unit * 0.2, unit * 0.2, 0, Math.PI * 2);
+    ctx.arc(centerX + unit * 0.4, centerY - unit * 0.2, unit * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+
+  if (enemy.type === "ufo") {
+    const centerX = screenX + w / 2;
+    const centerY = screenY + h / 2;
+    ctx.fillStyle = design.hull;
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY, w / 2, h / 2.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = design.trim;
+    ctx.fillRect(centerX - w * 0.45, centerY + h * 0.1, w * 0.9, h * 0.2);
+    ctx.fillStyle = design.dome;
+    ctx.beginPath();
+    ctx.ellipse(centerX, centerY - h * 0.2, w / 3, h / 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = design.light;
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.arc(centerX + i * w * 0.25, centerY + h * 0.2, h * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
     return;
   }
 
   if (enemy.type === "armadillo") {
-    const unit = Math.max(2, h / 10);
-    const ground = screenY + h;
-    const facingRight = enemy.vx >= 0;
-    const dir = facingRight ? 1 : -1;
-    const bodyHeight = h * 0.65;
-    const bodyWidth = w * 0.6;
-    const bodyCenterX = screenX + w / 2 + dir * unit * 0.6;
-    const bodyTop = ground - bodyHeight;
-    const quillBaseX = bodyCenterX - dir * bodyWidth * 0.45;
-    const quillBaseY = bodyTop + bodyHeight * 0.25;
+    const unit = h / 6;
+    const rolling = enemy.rollTimer && enemy.rollTimer > 0;
+    const bodyHeight = h * 0.9;
+    const bodyY = screenY + h - bodyHeight;
+    const centerX = screenX + w / 2;
 
-    // Quill fan
-    ctx.lineCap = "round";
-    const quillCount = 18;
-    for (let i = 0; i < quillCount; i++) {
-      const t = i / (quillCount - 1);
-      const angleOffset = (t - 0.2) * (Math.PI * 0.9);
-      const angle = Math.PI / 2 + angleOffset;
-      const length = w * 0.45 + Math.sin(t * Math.PI) * w * 0.2;
-      const tipX = quillBaseX + Math.cos(angle) * length * -dir;
-      const tipY = quillBaseY - Math.sin(angle) * length;
-      const baseOffsetY = t * unit * 0.8;
-      ctx.strokeStyle = design.spikes;
-      ctx.lineWidth = 3 - t * 1.4;
-      ctx.beginPath();
-      ctx.moveTo(quillBaseX, quillBaseY + baseOffsetY);
-      ctx.lineTo(tipX, tipY);
-      ctx.stroke();
-      ctx.strokeStyle = "rgba(255,255,255,0.35)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(quillBaseX - dir * unit * 0.2, quillBaseY + baseOffsetY + unit * 0.2);
-      ctx.lineTo(tipX - dir * 3, tipY + 1);
-      ctx.stroke();
-    }
-
-    // Body silhouette
-    const bodyLeft = bodyCenterX - bodyWidth / 2;
     ctx.fillStyle = design.shell;
     ctx.beginPath();
-    ctx.moveTo(bodyLeft, ground);
-    ctx.quadraticCurveTo(
-      bodyLeft - dir * bodyWidth * 0.4,
-      bodyTop + unit * 0.2,
-      bodyCenterX - dir * bodyWidth * 0.1,
-      bodyTop - unit * 0.4
+    ctx.ellipse(
+      centerX,
+      bodyY + bodyHeight / 2,
+      w / 2,
+      bodyHeight / 2,
+      0,
+      0,
+      Math.PI * 2
     );
-    ctx.quadraticCurveTo(
-      bodyCenterX + dir * bodyWidth * 0.65,
-      bodyTop + bodyHeight * 0.35,
-      bodyCenterX + dir * bodyWidth * 0.35,
-      ground
-    );
-    ctx.closePath();
     ctx.fill();
 
     ctx.fillStyle = design.highlight;
     ctx.beginPath();
-    ctx.moveTo(bodyLeft + unit * 0.8, ground - unit * 0.3);
-    ctx.quadraticCurveTo(
-      bodyCenterX - dir * bodyWidth * 0.15,
-      bodyTop + bodyHeight * 0.2,
-      bodyCenterX + dir * bodyWidth * 0.35,
-      ground - unit * 0.4
+    ctx.ellipse(
+      centerX,
+      bodyY + bodyHeight / 2,
+      w / 2.5,
+      bodyHeight / 2.5,
+      0,
+      0,
+      Math.PI * 2
     );
-    ctx.lineTo(bodyCenterX + dir * bodyWidth * 0.32, ground - unit * 0.2);
-    ctx.quadraticCurveTo(
-      bodyCenterX - dir * bodyWidth * 0.2,
-      bodyTop + bodyHeight * 0.3,
-      bodyLeft + unit * 0.9,
-      ground - unit * 0.1
-    );
-    ctx.closePath();
     ctx.fill();
 
-    // Head
-    const headX = bodyCenterX + dir * bodyWidth * 0.42;
-    const headY = ground - bodyHeight * 0.35;
-    ctx.fillStyle = design.face;
-    ctx.beginPath();
-    ctx.ellipse(headX, headY, unit * 1.2, bodyHeight * 0.3, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Nose
-    ctx.fillStyle = "#1d1010";
-    ctx.beginPath();
-    ctx.arc(headX + dir * unit * 0.9, headY + unit * 0.1, unit * 0.25, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Eye
-    ctx.fillStyle = design.eye;
-    ctx.beginPath();
-    ctx.arc(headX + dir * -unit * 0.3, headY - unit * 0.2, unit * 0.28, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Mouth
-    ctx.strokeStyle = "#1f1a16";
-    ctx.lineWidth = unit * 0.15;
-    ctx.beginPath();
-    ctx.moveTo(headX + dir * -unit * 0.2, headY + unit * 0.2);
-    ctx.lineTo(headX + dir * 0.6, headY + unit * 0.25);
-    ctx.stroke();
-
-    // Legs
-    ctx.fillStyle = design.face;
-    const legWidth = unit * 0.8;
-    const legHeight = unit * 0.9;
-    for (let i = 0; i < 3; i++) {
-      const step = (bodyWidth - legWidth) / 2;
-      const legX = facingRight
-        ? bodyLeft + i * step
-        : bodyLeft + bodyWidth - legWidth - i * step;
-      ctx.fillRect(legX, ground - legHeight, legWidth, legHeight);
-    }
-
-    if (enemy.rollTimer && enemy.rollTimer > 0) {
-      ctx.strokeStyle = "rgba(255,255,255,0.4)";
-      ctx.lineWidth = 2;
-      const blurOffset = dir * unit * 1.5;
+    // Segments
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 2;
+    for (let i = 1; i < 4; i++) {
+      const segX = screenX + (w / 4) * i;
       ctx.beginPath();
-      ctx.moveTo(bodyLeft + blurOffset, ground - bodyHeight * 0.2);
-      ctx.lineTo(bodyLeft + blurOffset, bodyTop + unit);
+      ctx.moveTo(segX, bodyY + unit * 0.5);
+      ctx.lineTo(segX, bodyY + bodyHeight - unit * 0.5);
       ctx.stroke();
     }
 
+    // Spikes
+    ctx.fillStyle = design.spikes;
+    const spikeCount = 6;
+    for (let i = 0; i < spikeCount; i++) {
+      ctx.beginPath();
+      const startX =
+        screenX + unit * 0.5 + (i / spikeCount) * (w - unit);
+      ctx.moveTo(startX, bodyY + unit * 0.6);
+      ctx.lineTo(startX + unit * 0.3, bodyY - unit * 1.2);
+      ctx.lineTo(startX + unit * 0.6, bodyY + unit * 0.6);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Head
+    ctx.fillStyle = design.face;
+    const headPos =
+      enemy.vx >= 0 ? screenX + w - unit * 0.5 : screenX + unit * 0.5;
+    ctx.beginPath();
+    ctx.arc(headPos, bodyY + bodyHeight * 0.6, unit * 0.9, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = design.eye;
+    ctx.beginPath();
+    const eyeDir = enemy.vx >= 0 ? -1 : 1;
+    ctx.arc(
+      headPos + eyeDir * unit * 0.3,
+      bodyY + bodyHeight * 0.55,
+      unit * 0.2,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+
+    if (rolling) {
+      ctx.strokeStyle = "rgba(255,255,255,0.4)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(
+        centerX,
+        bodyY + bodyHeight / 2,
+        w / 2.5,
+        Math.sin(phase) * Math.PI,
+        Math.sin(phase) * Math.PI + Math.PI / 1.5
+      );
+      ctx.stroke();
+    }
+
+    ctx.restore();
     return;
   }
 
   // Default fallback
   ctx.fillStyle = design.body || "#8B0000";
   ctx.fillRect(screenX, screenY, w, h);
+  ctx.restore();
 }
 
 // ------ HEARTS HUD ------
@@ -5642,6 +3879,159 @@ function drawBackgroundClouds() {
     const screenX = cloud.x - cameraX * parallax;
     drawCloudShape(screenX, cloud.y, cloud.scale);
   }
+}
+
+function drawBackgroundSea() {
+  if (!backgroundSea) return;
+  const horizonY = backgroundSea.horizonY ?? groundY - 120;
+  const height = backgroundSea.height ?? 140;
+  const parallax = backgroundSea.parallax ?? 0.12;
+  const startX = -canvas.width;
+  const totalWidth = worldWidth + canvas.width * 2;
+
+  ctx.save();
+  ctx.translate(-cameraX * parallax, 0);
+
+  const gradient = ctx.createLinearGradient(0, horizonY, 0, horizonY + height);
+  gradient.addColorStop(0, backgroundSea.topColor || "#7ec8ff");
+  gradient.addColorStop(1, backgroundSea.bottomColor || "#0b6da3");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(startX, horizonY, totalWidth, height);
+
+  const waves = backgroundSea.waves || [];
+  for (const wave of waves) {
+    const amplitude = wave.amplitude ?? 10;
+    const speed = wave.speed ?? 0.02;
+    const phase = wave.phase || 0;
+    const offset = Math.sin(animationFrame * speed + phase) * amplitude;
+    const relY = wave.relY ?? 0.3;
+    const y =
+      horizonY +
+      relY * height +
+      Math.sin(animationFrame * 0.01 + phase) * 2;
+    const width = wave.width ?? 140;
+    const thickness = wave.thickness ?? 3;
+    const x = startX + (wave.x ?? 0) + offset;
+    ctx.save();
+    ctx.globalAlpha = wave.alpha ?? 0.5;
+    ctx.fillStyle = wave.color || backgroundSea.waveColor || "rgba(255,255,255,0.7)";
+    ctx.beginPath();
+    ctx.ellipse(x + width / 2, y, width / 2, thickness, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+function drawBackgroundFish() {
+  if (!backgroundSea || backgroundFish.length === 0) return;
+  const horizonY = backgroundSea.horizonY ?? groundY - 120;
+  const height = backgroundSea.height ?? 140;
+  const parallax = backgroundSea.fishParallax ?? backgroundSea.parallax ?? 0.15;
+
+  ctx.save();
+  ctx.translate(-cameraX * parallax, 0);
+
+  for (const fish of backgroundFish) {
+    const scale = fish.scale || 1;
+    const bodyLength = 36 * scale;
+    const bodyHeight = 14 * scale;
+    const swimBaseY = horizonY + (fish.relY ?? 0.5) * (height - 20);
+    const bob = Math.sin(fish.bobPhase || 0) * (fish.wave ?? 6);
+    const y = swimBaseY + bob;
+    const x = fish.x || 0;
+    const dir = fish.direction || 1;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir, 1);
+    ctx.fillStyle = fish.color || "#ffd966";
+    ctx.strokeStyle = fish.accent || "rgba(255,255,255,0.8)";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.ellipse(0, 0, bodyLength / 2, bodyHeight / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(-bodyLength / 2, 0);
+    ctx.lineTo(-bodyLength / 2 - bodyLength * 0.3, -bodyHeight / 2);
+    ctx.lineTo(-bodyLength / 2 - bodyLength * 0.3, bodyHeight / 2);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = fish.accent || "rgba(255,255,255,0.8)";
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(bodyLength * 0.2, -bodyHeight * 0.35);
+    ctx.lineTo(bodyLength * 0.2, bodyHeight * 0.35);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(bodyLength * 0.15, -bodyHeight * 0.2, bodyHeight * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#1c2b3a";
+    ctx.beginPath();
+    ctx.arc(bodyLength * 0.18, -bodyHeight * 0.2, bodyHeight * 0.08, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+function drawAmbientSprites() {
+  if (!ambientSprites.length) return;
+  ctx.save();
+  for (const sprite of ambientSprites) {
+    const parallax = sprite.parallax ?? 0.2;
+    const screenX = sprite.x - cameraX * parallax;
+    const screenY = sprite.y;
+    if (sprite.type === "firefly" || sprite.type === "spark") {
+      const glow = sprite.color || "#ffe66d";
+      ctx.fillStyle = glow;
+      ctx.globalAlpha = sprite.type === "spark" ? 0.8 : 0.6;
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, sprite.size ?? 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (sprite.type === "ember") {
+      ctx.fillStyle = sprite.color || "#ffb347";
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.ellipse(screenX, screenY, 3, sprite.size ?? 6, Math.PI / 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (sprite.type === "meteor") {
+      ctx.strokeStyle = sprite.color || "#ffd166";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(screenX, screenY);
+      ctx.lineTo(screenX - 20, screenY - 10);
+      ctx.stroke();
+      ctx.fillStyle = sprite.color || "#ffd166";
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, sprite.size ?? 6, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (sprite.type === "spaceship") {
+      ctx.fillStyle = sprite.color || "#9be7ff";
+      ctx.beginPath();
+      ctx.ellipse(screenX, screenY, 16, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.beginPath();
+      ctx.ellipse(screenX, screenY - 4, 10, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = sprite.color || "#9be7ff";
+      ctx.fillRect(screenX - 12, screenY + 2, 24, 3);
+    }
+  }
+  ctx.restore();
 }
 
 // Simple cartoon cloud made of circles
@@ -5941,71 +4331,84 @@ function drawGrowthPowerUp(powerUp) {
   ctx.save();
   ctx.translate(centerX, centerY);
 
-  const bubbleRadius = Math.min(width, height) * 0.72;
-  const bubbleStroke = ctx.createRadialGradient(0, 0, bubbleRadius * 0.35, 0, 0, bubbleRadius);
-  bubbleStroke.addColorStop(0, "rgba(255,255,255,0.85)");
-  bubbleStroke.addColorStop(1, "rgba(255,255,255,0.25)");
+  const bubbleRadius = Math.min(width, height) * 0.7;
+  const bubbleStroke = ctx.createRadialGradient(0, 0, bubbleRadius * 0.4, 0, 0, bubbleRadius);
+  bubbleStroke.addColorStop(0, "rgba(255,255,255,0.9)");
+  bubbleStroke.addColorStop(1, "rgba(255,255,255,0.2)");
+
   ctx.lineWidth = 3;
   ctx.strokeStyle = bubbleStroke;
   ctx.beginPath();
   ctx.arc(0, 0, bubbleRadius, 0, Math.PI * 2);
   ctx.stroke();
 
-  const glare = ctx.createLinearGradient(-bubbleRadius, -bubbleRadius, bubbleRadius * 0.2, bubbleRadius * 0.2);
-  glare.addColorStop(0, "rgba(255,255,255,0.45)");
-  glare.addColorStop(1, "rgba(255,255,255,0.05)");
-  ctx.fillStyle = glare;
+  const highlightGradient = ctx.createLinearGradient(-bubbleRadius, -bubbleRadius, bubbleRadius, bubbleRadius);
+  highlightGradient.addColorStop(0, "rgba(255,255,255,0.35)");
+  highlightGradient.addColorStop(1, "rgba(255,255,255,0.05)");
+  ctx.fillStyle = highlightGradient;
   ctx.beginPath();
-  ctx.arc(-bubbleRadius * 0.45, -bubbleRadius * 0.4, bubbleRadius * 0.22, 0, Math.PI * 2);
+  ctx.arc(-bubbleRadius * 0.4, -bubbleRadius * 0.4, bubbleRadius * 0.25, 0, Math.PI * 2);
   ctx.fill();
 
-  // Star power-up
-  const starRadius = bubbleRadius * 0.6;
-  const starPoints = 5;
-  ctx.save();
-  const starGradient = ctx.createRadialGradient(0, -starRadius * 0.3, starRadius * 0.1, 0, 0, starRadius);
-  starGradient.addColorStop(0, "#fff5d4");
-  starGradient.addColorStop(0.5, "#ffd94d");
-  starGradient.addColorStop(1, "#ffb347");
-  ctx.fillStyle = starGradient;
-  ctx.strokeStyle = "rgba(255,255,255,0.55)";
-  ctx.lineWidth = 2;
+  // Golden star contained within the bubble
+  const starOuter = bubbleRadius * 0.55;
+  const starInner = starOuter * 0.45;
+  const starGlow = ctx.createRadialGradient(0, 0, starInner * 0.2, 0, 0, starOuter * 1.4);
+  starGlow.addColorStop(0, "rgba(255, 244, 196, 0.8)");
+  starGlow.addColorStop(0.7, "rgba(255, 209, 103, 0.25)");
+  starGlow.addColorStop(1, "rgba(255, 209, 103, 0)");
+  ctx.fillStyle = starGlow;
   ctx.beginPath();
-  for (let i = 0; i < starPoints * 2; i++) {
-    const angle = (Math.PI / starPoints) * i;
-    const radius = i % 2 === 0 ? starRadius : starRadius * 0.45;
-    const sx = Math.cos(angle) * radius;
-    const sy = Math.sin(angle) * radius;
-    if (i === 0) ctx.moveTo(sx, sy);
-    else ctx.lineTo(sx, sy);
+  ctx.arc(0, 0, starOuter * 1.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.save();
+  const spin = Math.sin(animationFrame * 0.08 + powerUp.x * 0.01) * 0.25;
+  ctx.rotate(spin);
+  const starGradient = ctx.createRadialGradient(0, 0, starInner * 0.2, 0, 0, starOuter);
+  starGradient.addColorStop(0, "#fffde7");
+  starGradient.addColorStop(0.45, "#ffe066");
+  starGradient.addColorStop(1, "#f6a11b");
+  ctx.fillStyle = starGradient;
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const angle = (Math.PI / 5) * i - Math.PI / 2;
+    const radius = i % 2 === 0 ? starOuter : starInner;
+    const px = Math.cos(angle) * radius;
+    const py = Math.sin(angle) * radius;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
   }
   ctx.closePath();
   ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(255,255,255,0.75)";
   ctx.stroke();
   ctx.restore();
 
-  // Star face
-  ctx.fillStyle = "#2c1a0a";
-  const eyeOffsetX = starRadius * 0.25;
-  const eyeY = -starRadius * 0.1;
-  ctx.beginPath();
-  ctx.arc(-eyeOffsetX, eyeY, starRadius * 0.12, 0, Math.PI * 2);
-  ctx.arc(eyeOffsetX, eyeY, starRadius * 0.12, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#ffeec7";
-  ctx.beginPath();
-  ctx.arc(-eyeOffsetX + starRadius * 0.03, eyeY - starRadius * 0.05, starRadius * 0.04, 0, Math.PI * 2);
-  ctx.arc(eyeOffsetX + starRadius * 0.03, eyeY - starRadius * 0.05, starRadius * 0.04, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Star shine
+  // Orbiting sparkles
   ctx.strokeStyle = "rgba(255,255,255,0.7)";
-  ctx.lineWidth = 1.2;
+  ctx.lineWidth = 1.4;
+  const twinkleCount = 3;
+  for (let i = 0; i < twinkleCount; i++) {
+    const angle = animationFrame * 0.04 + (i * Math.PI * 2) / twinkleCount;
+    const radius = bubbleRadius * 0.5;
+    const sx = Math.cos(angle) * radius * 0.6;
+    const sy = Math.sin(angle) * radius * 0.6;
+    ctx.beginPath();
+    ctx.moveTo(sx - 3, sy);
+    ctx.lineTo(sx + 3, sy);
+    ctx.moveTo(sx, sy - 3);
+    ctx.lineTo(sx, sy + 3);
+    ctx.stroke();
+  }
+
+  // Vertical glimmer to reinforce vertical motion
+  ctx.strokeStyle = "rgba(255,255,255,0.55)";
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(0, -starRadius);
-  ctx.lineTo(0, -starRadius - 6);
-  ctx.moveTo(starRadius * 0.7, -starRadius * 0.2);
-  ctx.lineTo(starRadius * 0.9, -starRadius * 0.3);
+  ctx.moveTo(0, -bubbleRadius * 0.85);
+  ctx.lineTo(0, -bubbleRadius * 0.6);
   ctx.stroke();
 
   ctx.restore();
@@ -6314,7 +4717,7 @@ function drawWinScreen() {
 
   const nextLevelIndex = currentLevel + 1;
   if (nextLevelIndex < totalLevels) {
-    const nextName = characters[getCharacterForLevel(nextLevelIndex)].name;
+    const nextName = characters[levelOrder[nextLevelIndex]].name;
     drawRetroText(`Next: ${nextName}`, canvas.width / 2, cardsY + cardHeight + 60, {
       size: 22,
       align: "center",
@@ -6341,6 +4744,82 @@ function drawWinScreen() {
   ctx.textAlign = "left";
 }
 
+function drawGrandFinaleScreen() {
+  drawMenuBackdrop();
+  ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.textAlign = "center";
+
+  drawRetroText("WINNER!", canvas.width / 2, 90, {
+    size: 62,
+    align: "center",
+    color: "#fff7d1",
+  });
+  drawRetroText("YOU WIN", canvas.width / 2, 140, {
+    size: 48,
+    align: "center",
+    color: "#ffe28a",
+  });
+
+  const mediaWidth = canvas.width * 0.6;
+  const defaultAspect = 9 / 16;
+  let mediaAspect = defaultAspect;
+  if (finaleVideoReady && finaleVideo.videoWidth > 0 && finaleVideo.videoHeight > 0) {
+    mediaAspect = finaleVideo.videoHeight / finaleVideo.videoWidth;
+  } else if (coverImageLoaded && coverImage.width > 0) {
+    mediaAspect = coverImage.height / coverImage.width;
+  }
+  const mediaHeight = mediaWidth * mediaAspect;
+  const mediaX = canvas.width / 2 - mediaWidth / 2;
+  const mediaY = 170;
+
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.fillRect(mediaX - 10, mediaY - 10, mediaWidth + 20, mediaHeight + 20);
+  ctx.strokeStyle = "rgba(0,0,0,0.35)";
+  ctx.lineWidth = 4;
+  ctx.strokeRect(mediaX - 10, mediaY - 10, mediaWidth + 20, mediaHeight + 20);
+
+  let drewMedia = false;
+  if (finaleVideoReady && finaleVideo.videoWidth > 0 && finaleVideo.videoHeight > 0) {
+    ensureFinaleVideoPlays();
+    ctx.drawImage(finaleVideo, mediaX, mediaY, mediaWidth, mediaHeight);
+    drewMedia = true;
+  }
+  if (!drewMedia) {
+    if (coverImageLoaded) {
+      ctx.drawImage(coverImage, mediaX, mediaY, mediaWidth, mediaHeight);
+    } else {
+      ctx.fillStyle = "#1b3a57";
+      ctx.fillRect(mediaX, mediaY, mediaWidth, mediaHeight);
+    }
+  }
+
+  drawRetroText("Developed by Vasyl Pavlyuchok", canvas.width / 2, mediaY + mediaHeight + 60, {
+    size: 28,
+    align: "center",
+    color: "#ffe491",
+  });
+  drawRetroText("Thank you for playing Mateo & Bros!", canvas.width / 2, mediaY + mediaHeight + 100, {
+    size: 24,
+    align: "center",
+    color: "#fff0d3",
+  });
+
+  drawRetroText(`Final Score: ${score}`, canvas.width / 2, mediaY + mediaHeight + 150, {
+    size: 26,
+    align: "center",
+    color: "#fff7d1",
+  });
+
+  drawRetroText("Press SPACE to return to Mateo", canvas.width / 2, mediaY + mediaHeight + 200, {
+    size: 20,
+    align: "center",
+    color: "#ffe491",
+  });
+
+  ctx.textAlign = "left";
+}
+
 // ------ DRAW LOGIC ------
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -6356,7 +4835,11 @@ function draw() {
     return;
   }
   if (gameState === "win") {
-    drawWinScreen();
+    if (currentLevel === totalLevels - 1) {
+      drawGrandFinaleScreen();
+    } else {
+      drawWinScreen();
+    }
     stopBackgroundMusic();
     return;
   }
@@ -6366,8 +4849,11 @@ function draw() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Background parallax (far hills, near hills, clouds)
+  drawBackgroundSea();
   drawBackgroundHillsLayer(backgroundHillsFar, 0.25);
   drawBackgroundHillsLayer(backgroundHillsNear, 0.45);
+  drawBackgroundFish();
+  drawAmbientSprites();
   drawBackgroundClouds();
 
   // Ground + platforms + blocks
